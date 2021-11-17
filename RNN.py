@@ -6,33 +6,47 @@ import numpy as np
 
 class MinimalRNNCell(tf.keras.layers.Layer):
     ### some helpful reference https://stackoverflow.com/questions/60185290/implementing-a-minimal-lstmcell-in-keras-using-rnn-and-layer-classes
-    def __init__(self, units, **kwargs):
+    def __init__(self, units=2, coeffs=None):
         self.units = units
         self.state_size = units
-        super(MinimalRNNCell, self).__init__(**kwargs)
+
+        self.C, self.A, self.D, self.dt = coeffs
+        super(MinimalRNNCell, self).__init__()
 
     def build(self, input_shape):
-        self.kernel = self.add_weight(shape=(input_shape[-1], self.units),
+        self.coeffs_A = self.add_weight(shape=(input_shape[-1], self.units),
                                       initializer='uniform',
-                                      name='kernel')
+                                      name='coeffs_A')
+
         self.recurrent_kernel = self.add_weight(
             shape=(self.units, self.units),
             initializer='uniform',
             name='recurrent_kernel')
+
         self.built = True
 
     def call(self, inputs, states):
         prev_output = states[0] #i guess that states[0] is because you put [output]
-        h = tf.keras.backend.dot(inputs, self.kernel)
-        output = h + tf.keras.backend.dot(prev_output, self.recurrent_kernel)
-        return output, [output]
+
+        batched_xicovs, dy = inputs
+        #print(batched_xicovs)
+        batched_A_minus_xiC = self.coeffs_A - tf.einsum('bij,jk->bik',batched_xicovs,self.C) ## this should get predicted A
+        dx = tf.einsum('bij,bj->bi',batched_A_minus_xiC, prev_output)*self.dt + dy
+        x = prev_output + dx
+        return x, [x]
+#
+#        output = tf.keras.backend.dot(prev_output, self.recurrent_kernel)
+        #h = tf.keras.backend.dot(inputs, self.kernel)
+        #output = h + tf.keras.backend.dot(prev_output, self.recurrent_kernel)
+
+        #return output, [output]
 
 
 class RecModel(tf.keras.Model):
     def __init__(self, units):
         self.total_loss = Metrica(name="total_loss")
 
-        self.recurrent_layer = tf.keras.layers.RNN(MinimalRNNCell(units))
+        self.rec_layer = tf.keras.layers.RNN([MinimalRNNCell(2)], stateful=True, return_sequences=True)
 
     def call(self, inputs):
         f = self.recurrent_layer(inputs)   #gru_layer(tfsignals[:,:10,:], initial_state=tf.convert_to_tensor([[1.,0.]]))
