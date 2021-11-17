@@ -14,6 +14,9 @@ class MinimalRNNCell(tf.keras.layers.Layer):
         super(MinimalRNNCell, self).__init__()
 
     def build(self, input_shape):
+
+        ###### there's a problem here!!!
+        input_shape=((2,2))
         self.coeffs_A = self.add_weight(shape=(input_shape[-1], self.units),
                                       initializer='uniform',
                                       name='coeffs_A')
@@ -26,20 +29,13 @@ class MinimalRNNCell(tf.keras.layers.Layer):
         self.built = True
 
     def call(self, inputs, states):
-        prev_output = states[0] #i guess that states[0] is because you put [output]
+        prev_output = states[0]
 
         batched_xicovs, dy = inputs
-        #print(batched_xicovs)
         batched_A_minus_xiC = self.coeffs_A - tf.einsum('bij,jk->bik',batched_xicovs,self.C) ## this should get predicted A
         dx = tf.einsum('bij,bj->bi',batched_A_minus_xiC, prev_output)*self.dt + dy
         x = prev_output + dx
         return x, [x]
-#
-#        output = tf.keras.backend.dot(prev_output, self.recurrent_kernel)
-        #h = tf.keras.backend.dot(inputs, self.kernel)
-        #output = h + tf.keras.backend.dot(prev_output, self.recurrent_kernel)
-
-        #return output, [output]
 
 
 class RecModel(tf.keras.Model):
