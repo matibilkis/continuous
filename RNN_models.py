@@ -28,10 +28,10 @@ class MinimalRNNCell(tf.keras.layers.Layer):
     def call(self, inputs, states):
         prev_output = states[0]
 
-        print("inputs: ",inputs)
-        print("\n")
-        print("states: ",states)
-        print("***\n\n")
+        # print("inputs: ",inputs)
+        # print("\n")
+        # print("states: ",states)
+        # print("***\n\n")
 
         batched_xicovs, dy = inputs
         batched_A_minus_xiC = self.A - tf.einsum('bij,jk->bik',batched_xicovs,self.C)
