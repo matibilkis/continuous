@@ -29,10 +29,13 @@ class MinimalRNNCell(tf.keras.layers.Layer):
 
     def call(self, inputs, states):
         prev_output = states[0]
-
         batched_xicovs, dy = inputs
         batched_A_minus_xiC = self.coeffs_A - tf.einsum('bij,jk->bik',batched_xicovs,self.C) ## this should get predicted A
+#        batched_A_minus_xiC = self.coeffs_A - tf.einsum('bij,jk->bik',batched_xicovs,self.C) ## this should get predicted A
+
+        #dx = tf.einsum('bij,bj->bi',batched_A_minus_xiC, prev_output)*self.dt + dy
         dx = tf.einsum('bij,bj->bi',batched_A_minus_xiC, prev_output)*self.dt + dy
+
         x = prev_output + dx
         return x, [x]
 
@@ -53,11 +56,6 @@ class RecModel(tf.keras.Model):
     @property
     def metrics(self):
         return [self.total_loss]
-
-
-
-
-
 
 
 
