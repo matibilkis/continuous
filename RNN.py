@@ -16,8 +16,7 @@ class MinimalRNNCell(tf.keras.layers.Layer):
     def build(self, input_shape):
 
         ###### there's a problem here!!!
-        input_shape=((2,2))
-        self.coeffs_A = self.add_weight(shape=(input_shape[-1], self.units),
+        self.coeffs_A = self.add_weight(shape=(2, 2),
                                       initializer='uniform',
                                       name='coeffs_A')
 
@@ -39,18 +38,33 @@ class MinimalRNNCell(tf.keras.layers.Layer):
 
 
 class RecModel(tf.keras.Model):
-    def __init__(self, units):
+    def __init__(self, coeffs):
+        super(RecModel,self).__init__()
+
         self.total_loss = Metrica(name="total_loss")
 
-        self.rec_layer = tf.keras.layers.RNN([MinimalRNNCell(2)], stateful=True, return_sequences=True)
+        self.rec_layer = tf.keras.layers.RNN([MinimalRNNCell(2,  coeffs=coeffs)], stateful=True, return_sequences=True)
+        self.C, self.A, self.D, self.dt = coeffs
 
     def call(self, inputs):
-        f = self.recurrent_layer(inputs)   #gru_layer(tfsignals[:,:10,:], initial_state=tf.convert_to_tensor([[1.,0.]]))
+        f = self.rec_layer(inputs)   #gru_layer(tfsignals[:,:10,:], initial_state=tf.convert_to_tensor([[1.,0.]]))
         return f
 
     @property
     def metrics(self):
         return [self.total_loss]
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class ModelA(tf.keras.Model):
