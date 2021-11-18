@@ -2,60 +2,44 @@
 import tensorflow as tf
 import numpy as np
 
-#tf.keras.backend.set_floatx("float32")
 
 class MinimalRNNCell(tf.keras.layers.Layer):
-    ### some helpful reference https://stackoverflow.com/questions/60185290/implementing-a-minimal-lstmcell-in-keras-using-rnn-and-layer-classes
-    def __init__(self, units=2, coeffs=None):
+
+    def __init__(self, units, **kwargs):
         self.units = units
-        self.state_size = (2)
-        self.C, self.A, self.D, self.dt = coeffs
-        super(MinimalRNNCell, self).__init__()
+        self.state_size = units
+        super(MinimalRNNCell, self).__init__(**kwargs)
 
     def build(self, input_shape):
-
-        self.coeffs_A = self.add_weight(shape=(2, 2),
-                                     initializer='uniform',
-                                     name='coeffs_A')
-
+        self.kernel = self.add_weight(shape=(input_shape[-1], self.units),
+                                      initializer='uniform',
+                                      name='kernel')
         self.recurrent_kernel = self.add_weight(
-            shape=(self.units, self.units),#
+            shape=(self.units, self.units),
             initializer='uniform',
             name='recurrent_kernel')
-
         self.built = True
 
     def call(self, inputs, states):
         prev_output = states[0]
-
-        print("inputs: ",inputs[0].shape, "...", inputs[1].shape)
-        print("\n")
-        print("states: ",[s.shape for s in states])
-        print("***\n\n")
-
-        batched_xicovs, dy = inputs
-        batched_A_minus_xiC = self.coeffs_A - tf.einsum('bij,jk->bik',batched_xicovs,self.C)
-
-        print(prev_output.shape)
-        print(batched_A_minus_xiC.shape)
-
-        dx = tf.einsum('bij,j->bi',batched_A_minus_xiC, prev_output[0])*self.dt + tf.einsum('bij,bj->bi', batched_xicovs, dy)
-        x = prev_output + dx
-        output = tf.einsum('ij,bj->bi',self.C, prev_output)*self.dt
-        return output, [x]
+        h = tf.keras.backend.dot(inputs, self.kernel)
+        output = h + tf.keras.backend.dot(prev_output, self.recurrent_kernel)
+        return output, [output]
 
 
-class RecModel(tf.keras.Model):
-    def __init__(self, coeffs):
-        super(RecModel,self).__init__()
+
+
+
+class ToyModel(tf.keras.Model):
+    def __init__(self):
+        super(ToyModel,self).__init__()
 
         self.init_state = tf.convert_to_tensor(np.array([[1.,0.]]).astype(np.float32))
         self.total_loss = Metrica(name="total_loss")
-        self.rec_layer = tf.keras.layers.RNN([MinimalRNNCell(2,  coeffs=coeffs)], return_sequences=True)
-        self.C, self.A, self.D, self.dt = coeffs
+        self.rec_layer = tf.keras.layers.RNN(MinimalRNNCell(2), return_sequences=True, stateful=True)
 
     def call(self, inputs):
-        f = self.rec_layer(inputs, initial_state = self.init_state)
+        f = self.rec_layer(inputs)
         return f
 
     @property
@@ -64,11 +48,11 @@ class RecModel(tf.keras.Model):
 
     @tf.function
     def train_step(self, data):
-        inputs, batched_signals = data
+        x, y = data
         with tf.GradientTape() as tape:
             tape.watch(self.trainable_variables)
-            preds = self(inputs)
-            loss = tf.keras.losses.MeanSquaredError()(preds, batched_signals)
+            preds = self(x)
+            loss = tf.keras.losses.MeanSquaredError()(preds, y)
         grads = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.trainable_variables))
         self.total_loss.update_state(loss)
