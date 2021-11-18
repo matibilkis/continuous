@@ -22,24 +22,27 @@ class MinimalRNNCell(tf.keras.layers.Layer):
 
     def call(self, inputs, states):
         prev_output = states[0]
+        # print(inputs)
+        # print("\\\\\\")
+        # print(prev_output)
+        # print("\n")
         h = tf.keras.backend.dot(inputs, self.kernel)
         output = h + tf.keras.backend.dot(prev_output, self.recurrent_kernel)
         return output, [output]
 
-
-
-
-
 class ToyModel(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, batch_size=1):
         super(ToyModel,self).__init__()
 
-        self.init_state = tf.convert_to_tensor(np.array([[1.,0.]]).astype(np.float32))
+        self.batch_size = batch_size
+        self.initial_state = tf.repeat(np.array([[1.,0]]).astype(np.float32), batch_size, axis=0)
+        #self.init_state = tf.convert_to_tensor(np.array([[1.,0.]]).astype(np.float32))
         self.total_loss = Metrica(name="total_loss")
         self.rec_layer = tf.keras.layers.RNN(MinimalRNNCell(2), return_sequences=True, stateful=True)
 
+
     def call(self, inputs):
-        f = self.rec_layer(inputs)
+        f = self.rec_layer(inputs, initial_state = self.initial_state)
         return f
 
     @property

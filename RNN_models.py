@@ -2,14 +2,44 @@
 import tensorflow as tf
 import numpy as np
 
-#tf.keras.backend.set_floatx("float32")
+
+
+
+
+
+class MinimalRNNCell(tf.keras.layers.Layer):
+
+    def __init__(self, units, coeffs):
+        self.units = units
+        self.state_size = units
+        super(MinimalRNNCell, self).__init__()
+        self.C, self.A, self.D, self.dt = coeffs
+
+
+    def build(self, input_shape):
+        self.coeffs_A = self.add_weight(shape=(input_shape[-1], self.units),
+                                      initializer='uniform',
+                                      name='kernel')
+
+        self.recurrent_kernel = self.add_weight(
+            shape=(self.units, self.units),#
+            initializer='uniform',
+            name='recurrent_kernel')
+
+        self.built = True
+
+    def call(self, inputs, states):
+        prev_output = states[0]
+        h = tf.keras.backend.dot(inputs, self.kernel)
+        output = h + tf.keras.backend.dot(prev_output, self.recurrent_kernel)
+        return output, [output]
+
 
 class MinimalRNNCell(tf.keras.layers.Layer):
     ### some helpful reference https://stackoverflow.com/questions/60185290/implementing-a-minimal-lstmcell-in-keras-using-rnn-and-layer-classes
     def __init__(self, units=2, coeffs=None):
         self.units = units
         self.state_size = (2)
-        self.C, self.A, self.D, self.dt = coeffs
         super(MinimalRNNCell, self).__init__()
 
     def build(self, input_shape):
