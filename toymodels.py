@@ -52,6 +52,7 @@ class ToyModel(tf.keras.Model):
     @tf.function
     def train_step(self, data):
         x, y = data
+        print(x)
         with tf.GradientTape() as tape:
             tape.watch(self.trainable_variables)
             preds = self(x)

@@ -17,7 +17,8 @@ class MinimalRNNCell(tf.keras.layers.Layer):
 
 
     def build(self, input_shape):
-        self.coeffs_A = self.add_weight(shape=(input_shape[-1], self.units),
+        # print(input_shape)
+        self.coeffs_A = self.add_weight(shape=(2, 2),
                                       initializer='uniform',
                                       name='kernel')
 
@@ -28,64 +29,38 @@ class MinimalRNNCell(tf.keras.layers.Layer):
 
         self.built = True
 
-    def call(self, inputs, states):
+    def call(self, inputs, states, output_states=False):
+
         prev_output = states[0]
-        h = tf.keras.backend.dot(inputs, self.kernel)
-        output = h + tf.keras.backend.dot(prev_output, self.recurrent_kernel)
-        return output, [output]
-
-
-class MinimalRNNCell(tf.keras.layers.Layer):
-    ### some helpful reference https://stackoverflow.com/questions/60185290/implementing-a-minimal-lstmcell-in-keras-using-rnn-and-layer-classes
-    def __init__(self, units=2, coeffs=None):
-        self.units = units
-        self.state_size = (2)
-        super(MinimalRNNCell, self).__init__()
-
-    def build(self, input_shape):
-
-        self.coeffs_A = self.add_weight(shape=(2, 2),
-                                     initializer='uniform',
-                                     name='coeffs_A')
-
-        self.recurrent_kernel = self.add_weight(
-            shape=(self.units, self.units),#
-            initializer='uniform',
-            name='recurrent_kernel')
-
-        self.built = True
-
-    def call(self, inputs, states):
-        prev_output = states[0]
-
-        print("inputs: ",inputs[0].shape, "...", inputs[1].shape)
-        print("\n")
-        print("states: ",[s.shape for s in states])
-        print("***\n\n")
 
         batched_xicovs, dy = inputs
         batched_A_minus_xiC = self.coeffs_A - tf.einsum('bij,jk->bik',batched_xicovs,self.C)
 
-        print(prev_output.shape)
-        print(batched_A_minus_xiC.shape)
-
-        dx = tf.einsum('bij,j->bi',batched_A_minus_xiC, prev_output[0])*self.dt + tf.einsum('bij,bj->bi', batched_xicovs, dy)
+        dx = tf.einsum('bij,bj->bi',batched_A_minus_xiC, prev_output)*self.dt + tf.einsum('bij,bj->bi', batched_xicovs, dy)
         x = prev_output + dx
         output = tf.einsum('ij,bj->bi',self.C, prev_output)*self.dt
-        return output, [x]
+        if output_states == True:
+            return x, [x]
+        else:
+            return output, [x]
 
 
 class RecModel(tf.keras.Model):
-    def __init__(self, coeffs):
+    def __init__(self, coeffs, batch_size=1):
         super(RecModel,self).__init__()
 
-        self.init_state = tf.convert_to_tensor(np.array([[1.,0.]]).astype(np.float32))
         self.total_loss = Metrica(name="total_loss")
         self.rec_layer = tf.keras.layers.RNN([MinimalRNNCell(2,  coeffs=coeffs)], return_sequences=True)
         self.C, self.A, self.D, self.dt = coeffs
+        self.batch_size = batch_size
+
+    @property
+    def initial_state(self):
+        return tf.repeat(np.array([[1.,0]]).astype(np.float32), self.batch_size, axis=0)
+
 
     def call(self, inputs):
-        f = self.rec_layer(inputs, initial_state = self.init_state)
+        f = self.rec_layer(inputs, initial_state = self.initial_state)
         return f
 
     @property
