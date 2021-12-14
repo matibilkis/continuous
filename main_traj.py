@@ -43,7 +43,7 @@ xi = lambda cov: np.dot(cov, ct(C)) #+ ct(Gamma_matrix)
 
 signals = []
 covs = [cov_in]
-means = [np.array([1,0])] ## initial condition
+means = [np.array([1.,0.])] ## initial condition
 xicovs = [xi(covs[-1])]
 
 for k in tqdm(range(total_points)):
