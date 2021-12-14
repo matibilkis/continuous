@@ -16,10 +16,10 @@ class MinimalRNNCell(tf.keras.layers.Layer):
                                       initializer='uniform',
                                       name='kernel')
 
-        self.recurrent_kernel = self.add_weight(
-            shape=(self.units, self.units),#
-            initializer='uniform',
-            name='recurrent_kernel')
+        # self.recurrent_kernel = self.add_weight(
+        #     shape=(self.units, self.units),#
+        #     initializer='uniform',
+        #     name='recurrent_kernel')
 
         self.built = True
 
