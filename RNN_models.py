@@ -40,6 +40,7 @@ class GaussianRecuModel(tf.keras.Model):
         self.C, self.A, self.D, self.dt = coeffs
 
         self.total_loss = Metrica(name="total_loss")
+        self.coeffsA = Metrica(name="Coeffs_A")
         self.recurrent_layer = tf.keras.layers.RNN([GaussianDynamics_RecurrentCell(2,  coeffs=coeffs)], return_sequences=True)#, stateful=True, batch_shape=[None])
         self.batch_size = batch_size
 
@@ -53,7 +54,7 @@ class GaussianRecuModel(tf.keras.Model):
 
     @property
     def metrics(self):
-        return [self.total_loss]
+        return [self.total_loss, self.coeffsA]
 
     def call(self, inputs):
         return self.recurrent_layer(inputs, initial_state = self.initial_state)
@@ -68,6 +69,7 @@ class GaussianRecuModel(tf.keras.Model):
         grads = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.trainable_variables))
         self.total_loss.update_state(loss)
+        self.coeffsA.update_state(self.trainable_variables[0])
         return {k.name:k.result() for k in self.metrics}
 
 
@@ -79,13 +81,13 @@ class Metrica(tf.keras.metrics.Metric):
     def __init__(self, name):
         super(Metrica, self).__init__()
         self._name=name
-        self.metric_variable = self.add_weight(name=name, initializer='zeros')
+        self.metric_variable = tf.convert_to_tensor(np.zeros((2,2)).astype(np.float32))
 
-    def update_state(self, new_value, sample_weight=None):
-        self.metric_variable.assign(new_value)
+    def update_state(self, new_value):
+        self.metric_variable = new_value
 
     def result(self):
         return self.metric_variable
 
     def reset_states(self):
-        self.metric_variable.assign(0.)
+        self.metric_variable = tf.convert_to_tensor(np.zeros((2,2)).astype(np.float32))
