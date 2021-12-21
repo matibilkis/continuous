@@ -14,6 +14,9 @@ class GaussianDynamics_RecurrentCell(tf.keras.layers.Layer):
                                       initializer='uniform',
                                       name='kernel')
         self.built = True
+        self.covariance = self.add_weight(shape=(2, 2),
+                                      initializer='uniform',
+                                      name='kernel')
 
     def call(self, inputs, states, output_states=False):
         prev_output = states[0]

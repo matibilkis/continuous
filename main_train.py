@@ -45,5 +45,5 @@ for time_slice in [-1]:      #tqdm(range(10,len(signals),3000)):
 
 
 #os.makedirs("/data/uab-giq/scratch/matias/quantera/trajectories/{}/".format(itraj), exist_ok=True)
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/A_history".format(itraj),np.array(history_A) )
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/loss_history".format(itraj),np.array(history_loss) )
+np.save(path+"{}/A_history".format(itraj),np.array(history_A) )
+np.save(path+"{}/loss_history".format(itraj),np.array(history_loss) )
