@@ -8,14 +8,15 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument("--ppp", type=int, default=200) ###points per period
+parser.add_argument("--ppp", type=int, default=1000) ###points per period
 parser.add_argument("--periods", type=int, default=20)
 parser.add_argument("--path", type=str, default="/data/uab-giq/scratch/matias/quantera/trajectories/")
-parser.add_argument("--itraj", type=int, default=0)
+parser.add_argument("--itraj", default=0)
 
 args = parser.parse_args()
-periods, ppp, path, itraj = args.periods, args.ppp, args.path, int(args.itraj)
 
+periods, ppp, path, itraj = args.periods, args.ppp, args.path, int(float(args.itraj))
+print(periods, ppp, path, itraj)
 #define parameters
 gamma = 1 #damping from outside
 Gamma = 1 #measurement rate

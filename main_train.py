@@ -10,21 +10,21 @@ import os
 
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--path", type=str, default="/data/uab-giq/scratch/matias/quantera/trajectories/")
-parser.add_argument("--itraj", type=int, default=0)
+parser.add_argument("--itraj", default=0)
 parser.add_argument("--epochs", type=int, default=100)
 
 args = parser.parse_args()
-path, itraj, epochs = args.path, int(args.itraj), int(args.epochs)
+path, itraj, epochs = args.path, int(float(args.itraj)), int(float(args.epochs))
 
 
-means = np.load(path+"{}/means.npy".format(itraj)).astype(np.float32) ### this is \textbf{q}(t)
-covs = np.load(path+"{}/covs.npy".format(itraj)).astype(np.float32) ## this is the \Sigma(t)
-xicovs = np.load(path+"{}/xicovs.npy".format(itraj)).astype(np.float32) ## this is the \Chi(\Sigma) (evolution)
-signals = np.load(path+"{}/signals.npy".format(itraj)).astype(np.float32) ##this is the dy's
-A = np.load(path+"{}/A.npy".format(itraj)).astype(np.float32)
-dt = np.load(path+"{}/dt.npy".format(itraj))[0]
-C = np.load(path+"{}/C.npy".format(itraj)).astype(np.float32)
-D = np.load(path+"{}/D.npy".format(itraj)).astype(np.float32)
+means = np.load(path+"{}/means.npy".format(itraj), allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+covs = np.load(path+"{}/covs.npy".format(itraj), allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
+xicovs = np.load(path+"{}/xicovs.npy".format(itraj), allow_pickle=True).astype(np.float32) ## this is the \Chi(\Sigma) (evolution)
+signals = np.load(path+"{}/signals.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
+A = np.load(path+"{}/A.npy".format(itraj), allow_pickle=True).astype(np.float32)
+dt = np.load(path+"{}/dt.npy".format(itraj), allow_pickle=True)[0]
+C = np.load(path+"{}/C.npy".format(itraj), allow_pickle=True).astype(np.float32)
+D = np.load(path+"{}/D.npy".format(itraj), allow_pickle=True).astype(np.float32)
 
 coeffs = [C, A, D , dt]
 

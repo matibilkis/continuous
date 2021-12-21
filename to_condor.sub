@@ -8,6 +8,6 @@ request_memory = 2 GB
 requirements= Has_avx == true
 +flavour="espresso"
 
-ppp=100
-args=$(ppp) $(Item) 
-queue from seq 2 1 2|
+periods=20
+args=$(Item) $(periods)
+queue from seq 1 1 50|
