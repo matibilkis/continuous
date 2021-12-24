@@ -10,13 +10,14 @@ import os
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--ppp", type=int, default=1000) ###points per period
 parser.add_argument("--periods", type=int, default=20)
-parser.add_argument("--path", type=str, default="/data/uab-giq/scratch/matias/quantera/trajectories/") #/home/cooper-cooper/continuous/
+parser.add_argument("--path", type=str, default="/data/uab-giq/scratch/matias/quantera/trajectories/")
 parser.add_argument("--itraj", default=0)
 
 args = parser.parse_args()
 
-periods, ppp, path, itraj = args.periods, args.ppp, args.path, int(float(args.itraj))
-print(periods, ppp, path, itraj)
+periods, ppp, path, itraj = int(float(args.periods)), args.ppp, args.path, int(float(args.itraj))
+path = path+"{}periods/".format(periods)
+
 #define parameters
 gamma = 1 #damping from outside
 Gamma = 1 #measurement rate

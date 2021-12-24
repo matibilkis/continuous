@@ -1,12 +1,11 @@
-import matplotlib.pyplot as plt
-from misc import *
-import tensorflow as tf
-from tqdm import tqdm
 import os
 
-from tensorflow.python.training.tracking.data_structures import NoDependency
-from tensorflow.python.framework.tensor_shape import TensorShape
+import random
+random.seed(1)
+import numpy as np
 
+from misc import *
+from tqdm import tqdm
 
 def generate_traj(ppp=4000, periods = 5, itraj=0, path = "/home/cooper-cooper/continous/"):
     #define parameters
@@ -17,6 +16,7 @@ def generate_traj(ppp=4000, periods = 5, itraj=0, path = "/home/cooper-cooper/co
     n = 2 # number of photons?
     w = 1
     T = 2*np.pi/w
+    np.random.seed(1)
 
     C = np.array([[np.sqrt(4*eta*Gamma), 0] ,[0, np.sqrt(4*eta*Gamma)]])
 
@@ -76,6 +76,6 @@ def generate_traj(ppp=4000, periods = 5, itraj=0, path = "/home/cooper-cooper/co
     return means, covs, xicovs, signals, coeffs
 
 
-for ppp in tqdm([100, 400, 2000, 4000, 10000]):
+for ppp in tqdm([6000, 10000, 20000]):
     for k in range(10):
         generate_traj(ppp=ppp, periods = 5, itraj=k, path = "sanity/integration/{}/".format(ppp))
