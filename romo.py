@@ -1,11 +1,12 @@
 import tensorflow as tf
 import numpy as np
+from misc import *
 
-class RecurentCellState(tf.keras.layers.Layer):
+class Rcell(tf.keras.layers.Layer):
     def __init__(self,state_size, coeffs=None):
-        self.state_size = state_size
-        super(RecurentCellState, self).__init__()
-        self.C, self.A, self.D, self.dt = coeffs
+        self.state_size = tuple([2,4])#,tf.TensorShape([2,2,1]) )#[(2,2), (1,2)]
+        super(Rcell, self).__init__()
+        self.C, self.dt = coeffs
 
     def build(self, input_shape):
         self.coeffs_A = self.add_weight(shape=(2, 2),
@@ -14,25 +15,45 @@ class RecurentCellState(tf.keras.layers.Layer):
 
         self.built = True
 
-    def call(self, inputs, states, output_states=False):
-        prev_output = states[0]
-        cov = states[1]
 
-        xicov = tf.einsum('ij,jk->ik',cov,ct(self.C))
-        bathed_xicovs = tf.expand_dims(xicov, axis=0)
+    def call(self, inputs, states):
         dy = inputs
+        sts, covs = states
 
-        batched_A_minus_xiC = self.coeffs_A - tf.einsum('bij,jk->bik',batched_xicovs,self.C)
+        print(sts)
+        print(covs)
+        covs = tf.reshape(covs,[1,len(covs),2,2])
+        xicov = tf.einsum('btij,jk->bik',covs,ct(self.C))
 
-        dx = tf.einsum('bij,bj->bi',batched_A_minus_xiC, prev_output)*self.dt + tf.einsum('bij,bj->bi', batched_xicovs, dy)
-        x = prev_output + dx
-        output = tf.einsum('ij,bj->bi',self.C, prev_output)*self.dt
+        A_minus_xiC = self.coeffs_A - tf.einsum('btij,jk->btik',xicov,self.C)
 
-        new_cov = tf.einsum('ij,jk->ik',cov, self.coeffs_A) + tf.einsum('ij,jk->ik',self.coeffs_A,cov) - tf.einsum('ij,jk->ik',self.coeffs_A,ct())
-        if output_states == True:
-            return x, [x, self.covariance]
-        else:
-            return output, [x, self.covariance]
+        dx = tf.einsum('btij,btj->bi',A_minus_xiC, sts)*self.dt + tf.einsum('bij,bj->bi', xicov, dy)
+        x = sts + dx
+        output = tf.einsum('ij,bj->bi',self.C, sts)*self.dt
+
+        new_cov = tf.einsum('bij,jk->ik',covs, self.coeffs_A) + tf.einsum('ij,bjk->ik',self.coeffs_A,covs)
+        - tf.einsum('bij,bjk->bik',ct(xicovs),xicovs)
+
+        return output, [x, tf.reshape(new_cov, [1,len(covs), 2,2])]
+
+    # def call(self, inputs, states):
+    #     dy = inputs
+    #     sts, covs = states
+    #
+    #     covs = tf.reshape(covs,[1,len(covs),2,2])
+    #     xicov = tf.einsum('bij,jk->ik',covs,ct(self.C))
+    #
+    #     A_minus_xiC = self.coeffs_A - tf.einsum('bij,jk->bik',xicov,self.C)
+    #
+    #     dx = tf.einsum('bij,bj->bi',A_minus_xiC, sts)*self.dt + tf.einsum('bij,bj->bi', xicov, dy)
+    #     x = sts + dx
+    #     output = tf.einsum('ij,bj->bi',self.C, sts)*self.dt
+    #
+    #     new_cov = tf.einsum('bij,jk->ik',covs, self.coeffs_A) + tf.einsum('ij,bjk->ik',self.coeffs_A,covs)
+    #     - tf.einsum('bij,bjk->bik',ct(xicovs),xicovs)
+    #
+    #     return output, [x, tf.reshape(new_cov, [1,len(covs), 2,2])]
+
 
 
 class GaussianRecuModel(tf.keras.Model):
@@ -43,12 +64,11 @@ class GaussianRecuModel(tf.keras.Model):
 
     def __init__(self, coeffs, batch_size=1):
         super(GaussianRecuModel,self).__init__()
-        self.C, self.A, self.D, self.dt = coeffs
+        self.C, self.dt = coeffs
 
         self.total_loss = Metrica(name="total_loss")
         self.coeffsA = Metrica(name="Coeffs_A")
-        self.recurrent_layer_state = tf.keras.layers.RNN([RecurentCellState(2,  coeffs=coeffs)], return_sequences=True)
-        self.batch_size = batch_size
+        self.recurrent_layer= tf.keras.layers.RNN([Rcell([2,4],  coeffs=coeffs)], return_sequences=True)
 
     @property
     def initial_state(self):
@@ -62,7 +82,7 @@ class GaussianRecuModel(tf.keras.Model):
         return [self.total_loss, self.coeffsA]
 
     def call(self, inputs):
-        return self.recurrent_layer(inputs, initial_state = self.initial_state)
+        return self.recurrent_layer(inputs)#, initial_state = self.initial_state)
 
     @tf.function
     def train_step(self, data):
