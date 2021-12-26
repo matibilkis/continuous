@@ -11,11 +11,13 @@ import os
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--path", type=str, default="/data/uab-giq/scratch/matias/quantera/trajectories/")
 parser.add_argument("--itraj", default=0)
-parser.add_argument("--epochs", type=int, default=100)
+parser.add_argument("--periods", default=20)
+parser.add_argument("--epochs", type=int, default=200)
+
 
 args = parser.parse_args()
-path, itraj, epochs = args.path, int(float(args.itraj)), int(float(args.epochs))
-
+path, itraj, epochs, periods = args.path, int(float(args.itraj)), int(float(args.epochs)), int(float(args.periods))
+path = path+"{}periods/".format(periods)
 
 means = np.load(path+"{}/means.npy".format(itraj), allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
 covs = np.load(path+"{}/covs.npy".format(itraj), allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
@@ -29,7 +31,7 @@ D = np.load(path+"{}/D.npy".format(itraj), allow_pickle=True).astype(np.float32)
 coeffs = [C, A, D , dt]
 
 model = GaussianRecuModel(coeffs)
-model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.05))
+model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.01))
 model(sliced_dataset(signals, xicovs,1))
 initial_A = model.trainable_variables
 
@@ -45,5 +47,5 @@ for time_slice in [-1]:      #tqdm(range(10,len(signals),3000)):
 
 
 #os.makedirs("/data/uab-giq/scratch/matias/quantera/trajectories/{}/".format(itraj), exist_ok=True)
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/A_history".format(itraj),np.array(history_A) )
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/loss_history".format(itraj),np.array(history_loss) )
+np.save(path+"{}/A_history".format(itraj),np.array(history_A) )
+np.save(path+"{}/loss_history".format(itraj),np.array(history_loss) )

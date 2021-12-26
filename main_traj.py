@@ -15,8 +15,9 @@ parser.add_argument("--itraj", default=0)
 
 args = parser.parse_args()
 
-periods, ppp, path, itraj = args.periods, args.ppp, args.path, int(float(args.itraj))
-print(periods, ppp, path, itraj)
+periods, ppp, path, itraj = int(float(args.periods)), args.ppp, args.path, int(float(args.itraj))
+path = path+"{}periods/".format(periods)
+
 #define parameters
 gamma = 1 #damping from outside
 Gamma = 1 #measurement rate
@@ -64,12 +65,12 @@ for k in tqdm(range(total_points)):
     means.append(means[-1] + dx)
     xicovs.append(xi(covs[-1]))
 
-os.makedirs("/data/uab-giq/scratch/matias/quantera/trajectories/{}/".format(itraj), exist_ok=True)
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/means".format(itraj),np.array(means) )
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/covs".format(itraj),np.array(covs) )
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/signals".format(itraj),np.array(signals) )
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/xicovs".format(itraj),np.array(xicovs) )
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/D".format(itraj),D)
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/C".format(itraj),C)
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/dt".format(itraj),np.array([dt]))
-np.save("/data/uab-giq/scratch/matias/quantera/trajectories/{}/A".format(itraj),A)
+os.makedirs(path+"{}/".format(itraj), exist_ok=True)
+np.save(path+"{}/means".format(itraj),np.array(means) )
+np.save(path+"{}/covs".format(itraj),np.array(covs) )
+np.save(path+"{}/signals".format(itraj),np.array(signals) )
+np.save(path+"{}/xicovs".format(itraj),np.array(xicovs) )
+np.save(path+"{}/D".format(itraj),D)
+np.save(path+"{}/C".format(itraj),C)
+np.save(path+"{}/dt".format(itraj),np.array([dt]))
+np.save(path+"{}/A".format(itraj),A)

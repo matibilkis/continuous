@@ -1,13 +1,13 @@
 executable=subash_traj.sh
 
-output = ../jobs/outs/$(Item).out
-error = ../jobs/errs/$(Item).err
-log = ../jobs/logs/$(Item).log
+output = ../jobs/outs/$(periods)_$(Item).out
+error = ../jobs/errs/$(periods)_$(Item).err
+log = ../jobs/logs/$(periods)_$(Item).log
 request_cpus = 1
 request_memory = 2 GB
 requirements= Has_avx == true
 +flavour="espresso"
 
-periods=20
+periods=100
 args=$(Item) $(periods)
 queue from seq 1 1 50|
