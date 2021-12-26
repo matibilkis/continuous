@@ -1,4 +1,4 @@
-executable=subash_traj.sh
+executable=subash_train.sh
 
 output = ../jobs/outs/$(periods)_$(Item).out
 error = ../jobs/errs/$(periods)_$(Item).err
@@ -6,8 +6,10 @@ log = ../jobs/logs/$(periods)_$(Item).log
 request_cpus = 1
 request_memory = 2 GB
 requirements= Has_avx == true
-+flavour="espresso"
++flavour="medium"
 
-periods=100
-args=$(Item) $(periods)
-queue from seq 1 1 50|
+itraj=0
+periods=5
+ppp=1000
+args=$(itraj) $(periods) $(Item) $(ppp)
+queue from seq 1 1 80|

@@ -1,51 +1,48 @@
 import numpy as np
-from scipy.stats import norm
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 from misc import *
 import tensorflow as tf
 from RNN_models import *
 import argparse
 import os
+defpath = get_def_path()
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument("--path", type=str, default="/data/uab-giq/scratch/matias/quantera/trajectories/")
-parser.add_argument("--itraj", default=0)
+parser.add_argument("--path", type=str, default=defpath)#"/data/uab-giq/scratch/matias/quantera/trajectories/")#'../sanity/data/'
+parser.add_argument("--itraj", type=int, default=0)
 parser.add_argument("--periods", default=20)
-parser.add_argument("--epochs", type=int, default=200)
+parser.add_argument("--ppp", type=int,default=1000)
+
+parser.add_argument("--epochs", type=int, default=1000)
+parser.add_argument("--trainid", type=int, default=0)
 
 
 args = parser.parse_args()
-path, itraj, epochs, periods = args.path, int(float(args.itraj)), int(float(args.epochs)), int(float(args.periods))
-path = path+"{}periods/".format(periods)
+path, itraj, epochs, periods, train_id, ppp = args.path, int(float(args.itraj)), int(float(args.epochs)), int(float(args.periods)), args.trainid, args.ppp
 
-means = np.load(path+"{}/means.npy".format(itraj), allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
-covs = np.load(path+"{}/covs.npy".format(itraj), allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
-xicovs = np.load(path+"{}/xicovs.npy".format(itraj), allow_pickle=True).astype(np.float32) ## this is the \Chi(\Sigma) (evolution)
-signals = np.load(path+"{}/signals.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
-A = np.load(path+"{}/A.npy".format(itraj), allow_pickle=True).astype(np.float32)
-dt = np.load(path+"{}/dt.npy".format(itraj), allow_pickle=True)[0]
-C = np.load(path+"{}/C.npy".format(itraj), allow_pickle=True).astype(np.float32)
-D = np.load(path+"{}/D.npy".format(itraj), allow_pickle=True).astype(np.float32)
-
-coeffs = [C, A, D , dt]
-
-model = GaussianRecuModel(coeffs)
-model.compile(optimizer=tf.keras.optimizers.Adam(lr=0.01))
-model(sliced_dataset(signals, xicovs,1))
-initial_A = model.trainable_variables
+path = path+"{}periods/{}ppp/".format(periods,ppp)
+train_path = path+"/training/train_id_{}/".format(train_id)
+os.makedirs(train_path, exist_ok=True)
 
 
-### training ####
-history_A, history_loss = [], []
-for time_slice in [-1]:      #tqdm(range(10,len(signals),3000)):
-    inputs = sliced_dataset(signals, xicovs,time_slice)
-    histo = model.fit(x=inputs, y=inputs[1][tf.newaxis,:,:], epochs=epochs, verbose=1)
-    for k,v in zip(histo.history["Coeffs_A"], histo.history["total_loss"]):
-        history_A.append(k)
-        history_loss.append(v)
+means, covs, signals, coeffs = load_data(path, itraj=itraj)
+tfsignals = tf.convert_to_tensor(signals)[tf.newaxis]
+A,dt,C,D = coeffs
+total_time = 2*np.pi*periods ##asumming freq = 1
 
 
-#os.makedirs("/data/uab-giq/scratch/matias/quantera/trajectories/{}/".format(itraj), exist_ok=True)
-np.save(path+"{}/A_history".format(itraj),np.array(history_A) )
-np.save(path+"{}/loss_history".format(itraj),np.array(history_loss) )
+rmodel = GRNNmodel([C,dt, total_time], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)))
+rmodel.compile(optimizer=tf.keras.optimizers.Adam(lr=0.01))
+rmodel.recurrent_layer(tfsignals, initial_state=rmodel.initial_state)
+#rmodel.trainable_variables[0].assign(tf.convert_to_tensor(A.astype(np.float32)))
+
+history = rmodel.fit(x=tfsignals, y=tfsignals,
+                     epochs = 10**3, callbacks = [tf.keras.callbacks.EarlyStopping(monitor='total_loss',
+                                                                                   min_delta=0, patience=500,
+                                                                                   verbose=0,
+                                                                                   mode='min')])
+
+histories = rmodel.history.history
+keys_histories = list(histories.keys())
+for k,v, in histories.items():
+    np.save(train_path+"{}".format(k), v, allow_pickle=True)
