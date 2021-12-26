@@ -1,5 +1,15 @@
 import numpy as np
 
+def get_def_path():
+    import getpass
+    user = getpass.getuser()
+    if user == "cooper-cooper":
+        defpath = '../quantera/sanity/trajectories/'
+    else:
+        defpath = "/data/uab-giq/scratch/matias/quantera/sanity/trajectories/"
+    return defpath
+
+
 def ct(A):
     return np.transpose(np.conjugate(A))
 
