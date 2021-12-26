@@ -34,8 +34,7 @@ total_time = 2*np.pi*periods ##asumming freq = 1
 rmodel = GRNNmodel([C,dt, total_time], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)))
 rmodel.compile(optimizer=tf.keras.optimizers.Adam(lr=0.01))
 rmodel.recurrent_layer(tfsignals, initial_state=rmodel.initial_state)
-rmodel.trainable_variables[0].assign(tf.convert_to_tensor(A.astype(np.float32)))
-
+#rmodel.trainable_variables[0].assign(tf.convert_to_tensor(A.astype(np.float32)))
 
 history = rmodel.fit(x=tfsignals, y=tfsignals,
                      epochs = 10**3, callbacks = [tf.keras.callbacks.EarlyStopping(monitor='total_loss',
