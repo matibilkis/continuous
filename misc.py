@@ -4,9 +4,9 @@ def get_def_path():
     import getpass
     user = getpass.getuser()
     if user == "cooper-cooper":
-        defpath = '../quantera/sanity/trajectories/'
+        defpath = '../quantera/trajectories/'
     else:
-        defpath = "/data/uab-giq/scratch/matias/quantera/sanity/trajectories/"
+        defpath = "/data/uab-giq/scratch/matias/quantera/trajectories/"
     return defpath
 
 
