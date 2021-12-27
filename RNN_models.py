@@ -30,7 +30,7 @@ class Rcell(tf.keras.layers.Layer):
         dx = tf.einsum('bij,bj->bi',A_minus_xiC, sts)*self.dt + tf.einsum('bij,bj->bi', xicov, dy)
         x = sts + tf.clip_by_value(dx,-self.max_update,self.max_update)
 
-        cov_dt = tf.einsum('bij,jk->bik',cov, self.coeffs_A) + tf.einsum('ij,bjk->bik',self.coeffs_A,cov) -tf.einsum('bij,bjk->bik',xicov, tf.transpose(xicov, perm=[0,2,1]))
+        cov_dt = tf.einsum('bij,jk->bik',cov, tf.transpose(self.coeffs_A)) + tf.einsum('ij,bjk->bik',self.coeffs_A,cov) -tf.einsum('bij,bjk->bik',xicov, tf.transpose(xicov, perm=[0,2,1]))
         new_cov = cov + cov_dt*self.dt
 
         new_states = [x, tf.clip_by_value(new_cov, -1,1)]
