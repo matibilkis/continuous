@@ -12,4 +12,4 @@ itraj=0
 periods=5
 ppp=1000
 args=$(itraj) $(periods) $(Item) $(ppp)
-queue from seq 1 1 80|
+queue from seq 1 1 8|
