@@ -1,0 +1,16 @@
+executable=subash_traj.sh
+
+output = ../jobs/outs/traj_$(periods)_$(Item).out
+error = ../jobs/errs/traj_$(periods)_$(Item).err
+log = ../jobs/logs/traj_$(periods)_$(Item).log
+request_cpus = 1
+request_memory = 2 GB
+requirements= Has_avx == true
++flavour="medium"
+
+itraj=0
+ppp=1000
+
+args=$(itraj) $(Item) $(ppp)
+queue from seq 10 10 100|
+

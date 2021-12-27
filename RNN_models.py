@@ -46,7 +46,7 @@ class GRNNmodel(tf.keras.Model):
 
     def __init__(self, coeffs, cov_in=tf.eye(2), stateful=False):
         super(GRNNmodel,self).__init__()
-        self.C, self.dt, self.total_time = coeffs
+        self.C, self.D, self.dt, self.total_time = coeffs
         self.cov_in = cov_in
 
         self.total_loss = Metrica(name="total_loss")
