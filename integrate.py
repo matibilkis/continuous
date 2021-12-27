@@ -24,7 +24,7 @@ def generate_traj(ppp=4000, periods = 5, itraj=0, path = "."):
         [0., w],
         [-w, 0.]])
 
-    D = 0*np.array([[gamma*(n + 0.5) + Gamma, 0], [0,gamma*(n + 0.5) + Gamma]])
+    D = np.array([[gamma*(n + 0.5) + Gamma, 0], [0,gamma*(n + 0.5) + Gamma]])
 
     su = n + 0.5 + Gamma/gamma
     cov_in = np.array([[np.sqrt(1+ (16*eta*Gamma*su/gamma) -1)*gamma/(8*eta*Gamma), 0],
