@@ -33,7 +33,7 @@ def generate_traj(ppp=4000, periods = 5, itraj=0, path = "."):
     dt = T/ppp
     total_points = int(T*periods/dt)
 
-    xi = lambda cov: np.dot(cov, ct(C)) #+ ct(Gamma_matrix)
+    xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
 
     signals = []
     covs = [cov_in]
