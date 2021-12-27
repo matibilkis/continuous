@@ -9,7 +9,7 @@ class Rcell(tf.keras.layers.Layer):
     def __init__(self,state_size = NoDependency([2, TensorShape([2,2])]), coeffs=None):
         self.state_size = state_size   ## Favorite: state_size = NoDependency([2, TensorShape([2,2])])
         super(Rcell, self).__init__()
-        self.C, self.dt = coeffs
+        self.C, self.D, self.dt = coeffs
         self.max_update = 1e-1
 
     def build(self, input_shape):
@@ -30,7 +30,7 @@ class Rcell(tf.keras.layers.Layer):
         dx = tf.einsum('bij,bj->bi',A_minus_xiC, sts)*self.dt + tf.einsum('bij,bj->bi', xicov, dy)
         x = sts + tf.clip_by_value(dx,-self.max_update,self.max_update)
 
-        cov_dt = tf.einsum('bij,jk->bik',cov, self.coeffs_A) + tf.einsum('ij,bjk->bik',self.coeffs_A,cov) -tf.einsum('bij,bjk->bik',xicov, tf.transpose(xicov))
+        cov_dt = tf.einsum('ij,bjk->bik',self.coeffs_A,cov) + tf.einsum('bij,jk->bik',cov, tf.transpose(self.coeffs_A)) + self.D - tf.einsum('bij,bjk->bik',xicov, tf.transpose(xicov, perm=[0,2,1]))
         new_cov = cov + cov_dt*self.dt
 
         new_states = [x, tf.clip_by_value(new_cov, -1,1)]
@@ -44,7 +44,7 @@ class GRNNmodel(tf.keras.Model):
     In our case we have a single layer composed of a single (recurrent) unit, which is the GaussianDynamics_RecurrentCell one.
     """
 
-    def __init__(self, coeffs, cov_in=tf.eye(2)):
+    def __init__(self, coeffs, cov_in=tf.eye(2), stateful=False):
         super(GRNNmodel,self).__init__()
         self.C, self.dt, self.total_time = coeffs
         self.cov_in = cov_in
@@ -52,7 +52,7 @@ class GRNNmodel(tf.keras.Model):
         self.total_loss = Metrica(name="total_loss")
         self.coeffsA = Metrica(name="Coeffs_A")
         self.gradient_history = Metrica(name="grads")
-        self.recurrent_layer = tf.keras.layers.RNN([Rcell(coeffs=coeffs[:-1])], return_sequences=True, stateful=False)
+        self.recurrent_layer = tf.keras.layers.RNN([Rcell(coeffs=coeffs[:-1])], return_sequences=True, stateful=stateful)
 
 
     @property

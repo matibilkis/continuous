@@ -31,7 +31,7 @@ A,dt,C,D = coeffs
 total_time = 2*np.pi*periods ##asumming freq = 1
 
 
-rmodel = GRNNmodel([C,dt, total_time], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)))
+rmodel = GRNNmodel([C,D, dt, total_time], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)))
 rmodel.compile(optimizer=tf.keras.optimizers.Adam(lr=0.01))
 rmodel.recurrent_layer(tfsignals, initial_state=rmodel.initial_state)
 #rmodel.trainable_variables[0].assign(tf.convert_to_tensor(A.astype(np.float32)))
