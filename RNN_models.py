@@ -31,9 +31,9 @@ class Rcell(tf.keras.layers.Layer):
         x = sts + tf.clip_by_value(dx,-self.max_update,self.max_update)
 
         cov_dt = tf.einsum('ij,bjk->bik',self.coeffs_A,cov) + tf.einsum('bij,jk->bik',cov, tf.transpose(self.coeffs_A)) + self.D - tf.einsum('bij,bjk->bik',xicov, tf.transpose(xicov, perm=[0,2,1]))
-        new_cov = cov + cov_dt*self.dt
+        new_cov = cov + tf.clip_by_value(cov_dt*self.dt,-self.max_update,self.max_update)
 
-        new_states = [x, tf.clip_by_value(new_cov, -1,1)]
+        new_states = [x, new_cov]
         return output, [new_states]
 
 
