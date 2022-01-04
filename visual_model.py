@@ -26,16 +26,30 @@ tfsignals = tf.convert_to_tensor(signals)[tf.newaxis]
 A,dt,C,D = coeffs
 total_time = periods ##asumming freq = 1
 
-lrs = {ind:k for ind,k in enumerate(np.logspace(-4,1,10))}
+length_series = [int(k) for k in np.logspace(2,np.log10(len(signals[:,0])), 16)][train_id]
+
 
 rmodel = GRNNmodel(coeffs = [C,D,dt, total_time], traj_details=[periods, ppp, train_id, path], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)), stateful=False)
-rmodel.compile(optimizer=tf.keras.optimizers.SGD(lr=lrs[train_id]))
+rmodel.compile(optimizer=tf.keras.optimizers.SGD(lr=0.01))
 rmodel.recurrent_layer(tfsignals[:,:10,:], initial_state=rmodel.initial_state)
 
 
-history = rmodel.fit(x=tfsignals, y=tfsignals,
-                     epochs = 10**3, callbacks = [CustomCallback(),
-                                                  tf.keras.callbacks.EarlyStopping(monitor='total_loss',
-                                                                                   min_delta=0, patience=100,
-                                                                                   verbose=0,
-                                                                                   mode='min')])
+parameters = np.arange(0,4*np.pi+np.pi/2,np.pi/2)
+
+l={}
+preds = {}
+for th in tqdm(parameters):
+    rmodel.trainable_variables[0].assign(tf.convert_to_tensor(np.array([[th]]).astype(np.float32)))
+    dy = tfsignals[:,:length_series,:]
+    tr = rmodel(dy)
+    diff = (tr - dy)[0]
+    l[th] = np.sum(tf.einsum('bj,bj->b',diff,diff))/2
+    preds[th] = tr
+loss_values = np.array(list(l.values()))/(dt*length_series)
+
+landscape_path=rmodel.train_path+"landscape/"
+os.makedirs(landscape_path,exist_ok=True)
+
+np.save(landscape_path+"loss_values", loss_values)
+for k, p in preds.items():
+    np.save(landscape_path+"preds{}".format(k), p)

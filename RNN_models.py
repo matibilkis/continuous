@@ -13,27 +13,30 @@ class Rcell(tf.keras.layers.Layer):
         self.max_update = 1e-1
 
     def build(self, input_shape):
-        self.coeffs_A = self.add_weight(shape=(2, 2),
+        self.coeffs_A = self.add_weight(shape=(1, 1),
                                       initializer='uniform',
                                       name='kernel')
         self.built = True
+        self.symplectic = tf.convert_to_tensor(np.array([[0,1],[-1,0]]).astype(np.float32))
 
     def call(self, inputs, states):
         dy = inputs
         sts, cov = states
 
+        A = self.coeffs_A*self.symplectic
+
         output = tf.einsum('ij,bj->bi',self.C, sts)*self.dt
 
         xicov = tf.einsum('bij,jk->bik',cov,tf.transpose(self.C)) + tf.transpose(self.D)
-        A_minus_xiC = self.coeffs_A - tf.einsum('bij,jk->bik',xicov,self.C)
+        A_minus_xiC = A - tf.einsum('bij,jk->bik',xicov,self.C)
 
         dx = tf.einsum('bij,bj->bi',A_minus_xiC, sts)*self.dt + tf.einsum('bij,bj->bi', xicov, dy)
         x = sts + tf.clip_by_value(dx,-self.max_update,self.max_update)
 
-        cov_dt = tf.einsum('ij,bjk->bik',self.coeffs_A,cov) + tf.einsum('bij,jk->bik',cov, tf.transpose(self.coeffs_A)) + self.D - tf.einsum('bij,bjk->bik',xicov, tf.transpose(xicov, perm=[0,2,1]))
-        new_cov = cov + cov_dt*self.dt
+        cov_dt = tf.einsum('ij,bjk->bik',A,cov) + tf.einsum('bij,jk->bik',cov, tf.transpose(A)) + self.D - tf.einsum('bij,bjk->bik',xicov, tf.transpose(xicov, perm=[0,2,1]))
+        new_cov = cov + tf.clip_by_value(cov_dt*self.dt, -self.max_update,self.max_update)
 
-        new_states = [x, tf.clip_by_value(new_cov, -1,1)]
+        new_states = [x, new_cov]
         return output, [new_states]
 
 
@@ -44,17 +47,22 @@ class GRNNmodel(tf.keras.Model):
     In our case we have a single layer composed of a single (recurrent) unit, which is the GaussianDynamics_RecurrentCell one.
     """
 
-    def __init__(self, coeffs,traj_details, cov_in=tf.eye(2), stateful=False):
+    def __init__(self, coeffs,traj_details,x0=tf.convert_to_tensor(np.array([[1,0]]).astype(np.float32)), cov_in=tf.eye(2), stateful=False):
         super(GRNNmodel,self).__init__()
         self.C, self.D, self.dt, self.total_time = coeffs
+
+        self.x0 = x0
         self.cov_in = cov_in
 
         self.total_loss = Metrica(name="total_loss")
         self.coeffsA = Metrica(name="Coeffs_A")
         self.gradient_history = Metrica(name="grads")
-        self.recurrent_layer = tf.keras.layers.RNN([Rcell(coeffs=coeffs[:-1])], return_sequences=True, stateful=stateful)
+        self.recurrent_layer = tf.keras.layers.RNN([Rcell(coeffs=[self.C, self.D, self.dt])], return_sequences=True, stateful=stateful)
 
         periods, ppp, train_id, path = traj_details
+        self.stateful = stateful
+
+
         if path == "":
             path = get_def_path() + "{}periods/{}ppp/".format(periods,ppp)
         self.train_path = path+"training/train_id_{}/".format(train_id)
@@ -67,7 +75,7 @@ class GRNNmodel(tf.keras.Model):
         """
         shape: (batch, time_step, features)
         """
-        x0 = tf.convert_to_tensor(np.array([[1,0]]).astype(np.float32))
+        x0 = self.x0
         Sig0 = self.cov_in
         return [[x0 , Sig0[tf.newaxis]]]
 

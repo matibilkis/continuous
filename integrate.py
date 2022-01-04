@@ -14,8 +14,10 @@ def generate_traj(ppp=4000, periods = 5, itraj=0, path = "."):
     Gamma = 1 #measurement rate
     eta = 1 # measurement efficiency
     n = 2 # number of photons?
-    w = 1
-    T = 2*np.pi/w
+
+    w = 2*np.pi
+    T = (2*np.pi)/w
+
     np.random.seed(1)
 
     C = np.array([[np.sqrt(4*eta*Gamma), 0] ,[0, np.sqrt(4*eta*Gamma)]])
@@ -31,7 +33,7 @@ def generate_traj(ppp=4000, periods = 5, itraj=0, path = "."):
                        [0,np.sqrt(1+ (16*eta*Gamma*su/gamma) -1)*gamma/(8*eta*Gamma)]])
 
     dt = T/ppp
-    total_points = int(T*periods/dt)
+    total_points = int(periods*ppp)
 
     xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
 
