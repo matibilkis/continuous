@@ -24,11 +24,12 @@ path = path+"{}periods/{}ppp/".format(periods,ppp)
 means, covs, signals, coeffs = load_data(path, itraj=itraj)
 tfsignals = tf.convert_to_tensor(signals)[tf.newaxis]
 A,dt,C,D = coeffs
-total_time = 2*np.pi*periods ##asumming freq = 1
+total_time = periods ##asumming freq = 1
 
+lrs = {ind:k for ind,k in enumerate(np.logspace(-4,1,10))}
 
 rmodel = GRNNmodel(coeffs = [C,D,dt, total_time], traj_details=[periods, ppp, train_id, path], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)), stateful=False)
-rmodel.compile(optimizer=tf.keras.optimizers.Adam(lr=0.01))
+rmodel.compile(optimizer=tf.keras.optimizers.SGD(lr=lrs[train_id]))
 rmodel.recurrent_layer(tfsignals[:,:10,:], initial_state=rmodel.initial_state)
 
 
