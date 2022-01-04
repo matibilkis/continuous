@@ -21,9 +21,9 @@ parser.add_argument("--trainid", type=int, default=0)
 args = parser.parse_args()
 path, itraj, epochs, periods, train_id, ppp = args.path, int(float(args.itraj)), int(float(args.epochs)), int(float(args.periods)), args.trainid, args.ppp
 
-optimizers = {0:tf.keras.optimizers.Adam, 1:tf.keras.optimizers.SGD}
-lrs = [0.001, 0.01, 0.1, 1]
-optimizer = optimizers[train_id%2](lr=lrs[train_id%4])
+optimizers = {0:tf.keras.optimizers.Adam, 1:tf.keras.optimizers.SGD, 2:tf.keras.optimizers.Adagrad}
+lrs = [0.01, 0.1, 1]
+optimizer = optimizers[train_id%3](lr=lrs[train_id%3])
 
 
 path = path+"{}periods/{}ppp/".format(periods,ppp)
@@ -33,7 +33,7 @@ tfsignals = tf.convert_to_tensor(signals)[tf.newaxis]
 A,dt,C,D = coeffs
 total_time = dt*ppp*periods
 
-rmod = GRNNmodel(coeffs = [C.astype(np.float32),D.astype(np.float32),dt, total_time], traj_details=[periods, ppp, itraj, get_def_path()], cov_in=tf.convert_to_tensor(cov_in.astype(np.float32)))
+rmod = GRNNmodel(coeffs = [C.astype(np.float32),D.astype(np.float32),dt, total_time], traj_details=[periods, ppp, itraj, path], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)))
 
 rmod.compile(optimizer=optimizer)
 rmod(tfsignals[:,:3,:]) #just initialize model

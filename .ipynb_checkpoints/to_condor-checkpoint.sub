@@ -10,8 +10,6 @@ requirements= Has_avx == true
 
 itraj=0
 ppp=500
-
 periods=40
 args=$(itraj) $(periods) $(Item) $(ppp)
-queue from seq 9 1 92|
-
+queue from seq 1 1 9|
