@@ -34,7 +34,7 @@ class Rcell(tf.keras.layers.Layer):
         x = sts + dx
 
         cov_dt = tf.einsum('ij,bjk->bik',A,cov) + tf.einsum('bij,jk->bik',cov, tf.transpose(A)) + self.D - tf.einsum('bij,bjk->bik',xicov, tf.transpose(xicov, perm=[0,2,1]))
-        new_cov = cov + tf.clip_by_value(cov_dt*self.dt, -self.max_update,self.max_update)
+        new_cov = cov + cov_dt*self.dt
 
         new_states = [x, new_cov]
         return output, [new_states]
@@ -47,7 +47,7 @@ class GRNNmodel(tf.keras.Model):
     In our case we have a single layer composed of a single (recurrent) unit, which is the GaussianDynamics_RecurrentCell one.
     """
 
-    def __init__(self, coeffs,traj_details,x0=tf.convert_to_tensor(np.array([[1,0]]).astype(np.float32)), cov_in=tf.eye(2), stateful=False):
+    def __init__(self, coeffs,traj_details,x0=tf.convert_to_tensor(np.array([[1,0]]).astype(np.float32)), cov_in=tf.eye(2), stateful=False, max_update=100):
         super(GRNNmodel,self).__init__()
         self.C, self.D, self.dt, self.total_time = coeffs
 
@@ -57,7 +57,7 @@ class GRNNmodel(tf.keras.Model):
         self.total_loss = Metrica(name="total_loss")
         self.coeffsA = Metrica(name="Coeffs_A")
         self.gradient_history = Metrica(name="grads")
-        self.recurrent_layer = tf.keras.layers.RNN([Rcell(coeffs=[self.C, self.D, self.dt])], return_sequences=True, stateful=stateful)
+        self.recurrent_layer = tf.keras.layers.RNN([Rcell(coeffs=[self.C, self.D, self.dt], max_update=max_update)], return_sequences=True, stateful=stateful)
 
         periods, ppp, train_id, path = traj_details
         self.stateful = stateful
@@ -93,13 +93,14 @@ class GRNNmodel(tf.keras.Model):
             tape.watch(self.trainable_variables)
             preds = self(inputs)
             diff = tf.squeeze(preds - dys)
-            loss = tf.reduce_sum(tf.einsum('bj,bj->b',diff,diff))/(2*self.total_time)
+            loss = tf.reduce_sum(tf.einsum('bj,bj->b',diff,diff))/(2*self.total_time) #this 2 comes from 
         grads = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.trainable_variables))
         self.total_loss.update_state(loss)
         self.coeffsA.update_state(self.trainable_variables[0])
         self.gradient_history.update_state(grads)
         return {k.name:k.result() for k in self.metrics}
+
 
 
 class Metrica(tf.keras.metrics.Metric):
