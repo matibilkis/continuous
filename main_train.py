@@ -33,7 +33,7 @@ tfsignals = tf.convert_to_tensor(signals)[tf.newaxis]
 A,dt,C,D = coeffs
 total_time = dt*ppp*periods
 
-rmod = GRNNmodel(coeffs = [C.astype(np.float32),D.astype(np.float32),dt, total_time], traj_details=[periods, ppp, itraj, get_def_path()], cov_in=tf.convert_to_tensor(cov_in.astype(np.float32)))
+rmod = GRNNmodel(coeffs = [C.astype(np.float32),D.astype(np.float32),dt, total_time], traj_details=[periods, ppp, itraj, get_def_path()], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)))
 
 rmod.compile(optimizer=optimizer)
 rmod(tfsignals[:,:3,:]) #just initialize model
