@@ -4,12 +4,18 @@ output = ../jobs/outs/$(periods)_$(Item).out
 error = ../jobs/errs/$(periods)_$(Item).err
 log = ../jobs/logs/$(periods)_$(Item).log
 request_cpus = 1
-request_memory = 2 GB
+request_memory = 4 GB
 requirements= Has_avx == true
 +flavour="medium"
 
 itraj=0
 ppp=500
 periods=40
-args=$(itraj) $(periods) $(Item) $(ppp)
-queue from seq 1 1 50|
+oneparam=0
+
+args=$(itraj) $(periods) $(Item) $(ppp) $(oneparam)
+queue from seq 1 1 8|
+
+oneparam=1
+args=$(itraj) $(periods) $(Item) $(ppp) $(oneparam)
+queue from seq 1 1 8|

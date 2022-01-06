@@ -14,10 +14,11 @@ parser.add_argument("--ppp", type=int, default=1000) ###points per period
 parser.add_argument("--periods", type=int, default=5)
 parser.add_argument("--path", type=str, default=defpath) #
 parser.add_argument("--itraj", type=int, default=0)
+parser.add_argument("--seed", type=int, default=0)
 
 args = parser.parse_args()
 
-periods, ppp, path, itraj = int(float(args.periods)), args.ppp, args.path, int(float(args.itraj))
+periods, ppp, path, itraj, seed = int(float(args.periods)), args.ppp, args.path, int(float(args.itraj)), args.seed
 path = path+"{}periods/{}ppp/".format(periods,ppp)
 
-generate_traj(ppp=ppp, periods = periods, itraj=itraj, path = path) #
+generate_traj(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=seed) #

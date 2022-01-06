@@ -21,4 +21,13 @@ args = parser.parse_args()
 periods, ppp, path, itraj, seed = int(float(args.periods)), args.ppp, args.path, int(float(args.itraj)), args.seed
 path = path+"{}periods/{}ppp/".format(periods,ppp)
 
-generate_traj(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=seed) #
+means, covs, xicovs, signals, coeffs = generate_traj(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=seed) #
+C, A, D , dt = coeffs
+
+give_pred = lambda state: np.dot(C,state)*dt
+def evolve_state(states, AA, dy):
+    x, cov = states
+    XiCov = xi(cov)
+    dx = np.dot(AA - np.dot(XiCov,C), x)*dt + np.dot(XiCov, dy)  #evolution update (according to what you measure)
+    dcov = (np.dot(AA,cov) + np.dot(cov, ct(AA)) + D - np.dot(XiCov, ct(XiCov)))*dt  #covariance update
+    return [x + dx, cov + dcov]

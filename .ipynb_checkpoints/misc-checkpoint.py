@@ -4,9 +4,9 @@ def get_def_path():
     import getpass
     user = getpass.getuser()
     if user == "cooper-cooper":
-        defpath = '../quantera/sanity/trajectories/'
+        defpath = '../quantera/trajectories/'
     else:
-        defpath = "/data/uab-giq/scratch/matias/quantera/sanity/trajectories/"
+        defpath = "/data/uab-giq/scratch/matias/quantera/trajectories/"
     return defpath
 
 
@@ -32,10 +32,14 @@ def load_data(path, itraj=0):
     return means, covs, signals, [A, dt, C, D]
 
 
-def load_train_results(path="",periods=20, ppp=1000, train_id=1):
+def load_train_results(path="",train_path="",periods=20, ppp=1000, train_id=1):
     if path == "":
         path = get_def_path()
-    train_path = path+"{}periods/{}ppp/training/train_id_{}/".format(periods, ppp, train_id)
+    if train_path == "":
+        train_path = path+"{}periods/{}ppp/training/train_id_{}/".format(periods, ppp, train_id)
+    else:
+        train_path = path+"{}periods/{}ppp/".format(periods,ppp) + train_path + "training/train_id_{}/".format(train_id)
+    
     hist_A = np.load(train_path+"Coeffs_A.npy")
     hist_loss = np.load(train_path+"total_loss.npy")
     hist_grads = np.load(train_path+"grads.npy")

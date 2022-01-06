@@ -1,15 +1,14 @@
 import os
-import random
-random.seed(1)
 import numpy as np
-np.random.seed(1)
 from misc import ct
 from tqdm import tqdm
 
 
-def generate_traj(ppp=4000, periods = 5, itraj=0, path = "."):
+def generate_traj(ppp=4000, periods = 5, itraj=0, path = ".", seed=0):
     #define parameters
     print("gneerating trajectory")
+    np.random.seed(seed)
+    
     gamma = 1 #damping from outside
     Gamma = 1 #measurement rate
     eta = 1 # measurement efficiency
@@ -17,8 +16,6 @@ def generate_traj(ppp=4000, periods = 5, itraj=0, path = "."):
 
     w = 2*np.pi
     T = (2*np.pi)/w
-
-    np.random.seed(1)
 
     C = np.array([[np.sqrt(4*eta*Gamma), 0] ,[0, np.sqrt(4*eta*Gamma)]])
 
