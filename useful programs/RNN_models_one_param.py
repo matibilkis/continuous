@@ -6,22 +6,24 @@ from misc import get_def_path
 import os
 
 class Rcell(tf.keras.layers.Layer):
-    def __init__(self,state_size = NoDependency([2, TensorShape([2,2])]), coeffs=None):
+    def __init__(self,state_size = NoDependency([2, TensorShape([2,2])]), coeffs=None,  max_update=100):
         self.state_size = state_size   ## Favorite: state_size = NoDependency([2, TensorShape([2,2])])
         super(Rcell, self).__init__()
         self.C, self.D, self.dt = coeffs
+        self.max_update = max_update
 
     def build(self, input_shape):
-        self.coeffs_A = self.add_weight(shape=(2, 2),
+        self.coeffs_A = self.add_weight(shape=(1, 1),
                                       initializer='uniform',
                                       name='kernel')
         self.built = True
+        self.symplectic = tf.convert_to_tensor(np.array([[0,1],[-1,0]]).astype(np.float32))
 
     def call(self, inputs, states):
         dy = inputs
         sts, cov = states
 
-        A = self.coeffs_A
+        A = self.coeffs_A*self.symplectic
 
         output = tf.einsum('ij,bj->bi',self.C, sts)*self.dt
 
@@ -45,7 +47,7 @@ class GRNNmodel(tf.keras.Model):
     In our case we have a single layer composed of a single (recurrent) unit, which is the GaussianDynamics_RecurrentCell one.
     """
 
-    def __init__(self, coeffs,traj_details,x0=tf.convert_to_tensor(np.array([[1,0]]).astype(np.float32)), cov_in=tf.eye(2), stateful=False):
+    def __init__(self, coeffs,traj_details,x0=tf.convert_to_tensor(np.array([[1,0]]).astype(np.float32)), cov_in=tf.eye(2), stateful=False, max_update=100):
         super(GRNNmodel,self).__init__()
         self.C, self.D, self.dt, self.total_time = coeffs
 
@@ -55,12 +57,14 @@ class GRNNmodel(tf.keras.Model):
         self.total_loss = Metrica(name="total_loss")
         self.coeffsA = Metrica(name="Coeffs_A")
         self.gradient_history = Metrica(name="grads")
-        self.recurrent_layer = tf.keras.layers.RNN([Rcell(coeffs=[self.C, self.D, self.dt])], return_sequences=True, stateful=stateful)
+        self.recurrent_layer = tf.keras.layers.RNN([Rcell(coeffs=[self.C, self.D, self.dt], max_update=max_update)], return_sequences=True, stateful=stateful)
 
-        periods, ppp, train_id, itraj = traj_details
+        periods, ppp, train_id, path = traj_details
         self.stateful = stateful
 
-        path = get_def_path() + "{}periods/{}ppp/{}itraj/".format(periods,ppp, itraj)
+
+        if path == "":
+            path = get_def_path() + "{}periods/{}ppp/".format(periods,ppp)
         self.train_path = path+"training/train_id_{}/".format(train_id)
         os.makedirs(self.train_path, exist_ok=True)
 
@@ -97,8 +101,33 @@ class GRNNmodel(tf.keras.Model):
         self.gradient_history.update_state(grads)
         return {k.name:k.result() for k in self.metrics}
 
-    
 
-    
 
-    
+class Metrica(tf.keras.metrics.Metric):
+    """
+    This helps to monitor training (for instance one out of different losses),
+    but you can also monitor gradients magnitude for example.
+    """
+    def __init__(self, name):
+        super(Metrica, self).__init__()
+        self._name=name
+        self.metric_variable = tf.convert_to_tensor(np.zeros((2,2)).astype(np.float32))
+
+    def update_state(self, new_value):
+        self.metric_variable = new_value
+
+    def result(self):
+        return self.metric_variable
+
+    def reset_states(self):
+        self.metric_variable = tf.convert_to_tensor(np.zeros((2,2)).astype(np.float32))
+
+
+class CustomCallback(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        keys = list(logs.keys())
+        histories = self.model.history.history
+        keys_histories = list(histories.keys())
+        for k,v, in histories.items():
+            np.save(self.model.train_path+"{}".format(k), v, allow_pickle=True)
+        print("End epoch {} of training; got log keys: {}".format(epoch, keys))

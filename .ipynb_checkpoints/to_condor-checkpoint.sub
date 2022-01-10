@@ -1,32 +1,19 @@
 executable=subash_train.sh
 
-output = ../jobs/outs/$(periods)_$(Item).out
-error = ../jobs/errs/$(periods)_$(Item).err
-log = ../jobs/logs/$(periods)_$(Item).log
+output = ../jobs/outs/$(Item)_$(ItemIndex).out
+error = ../jobs/errs/$(Item)_$(ItemIndex).err
+log = ../jobs/logs/$(Item)_$(ItemIndex).log
 request_cpus = 1
 request_memory = 4 GB
 requirements= Has_avx == true
-+flavour="medium"
++flavour="short"
 
 itraj=0
 ppp=500
 periods=40
-oneparam=0
 
-args=$(itraj) $(periods) $(Item) $(ppp) $(oneparam)
-queue from seq 1 1 8|
-
+args=$(Item) $(periods) $(ItemIndex) $(ppp)
+queue 8 in seq (1,2,3,4,5,6,7,8,9,10)
 
 
-output = ../jobs/outs/$(periods)_$(Item).out
-error = ../jobs/errs/$(periods)_$(Item).err
-log = ../jobs/logs/$(periods)_$(Item).log
-request_cpus = 1
-request_memory = 4 GB
-requirements= Has_avx == true
-+flavour="medium"
 
-
-oneparam=1
-args=$(itraj) $(periods) $(Item) $(ppp) $(oneparam)
-queue from seq 1 1 8|

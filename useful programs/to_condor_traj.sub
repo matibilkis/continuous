@@ -1,0 +1,16 @@
+executable=subash_traj.sh
+
+output = ../jobs/outs/traj_$(periods)_$(Item).out
+error = ../jobs/errs/$(Item).err
+log = ../jobs/logs/traj_$(periods)_$(Item).log
+request_cpus = 1
+request_memory = 2 GB
++flavour="short"
+
+
+ppp=500
+periods = 40
+
+args=$(Item) $(periods) $(ppp) $(Item)
+queue from seq 601 1 1000|
+
