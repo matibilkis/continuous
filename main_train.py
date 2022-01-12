@@ -5,6 +5,7 @@ import tensorflow as tf
 import argparse
 from datetime import datetime
 import os
+from RNN_models import *
 
 defpath = get_def_path()
 
@@ -15,7 +16,6 @@ parser.add_argument("--periods",type=int, default=40)
 parser.add_argument("--ppp", type=int,default=500)
 parser.add_argument("--trainid", type=int, default=0)
 
-
 args = parser.parse_args()
 path = args.path
 itraj = args.itraj
@@ -23,10 +23,11 @@ periods = args.periods
 ppp = args.ppp
 train_id = args.trainid
 
-optimizers = {0:tf.keras.optimizers.Adam, 1:tf.keras.optimizers.SGD}
-lrs = [0.01, 0.1, 1, 10]
-learning_rate = lrs[train_id%4]
-optimizer = optimizers[train_id%2](lr=learning_rate)
+#optimizer = {0:tf.keras.optimizers.Adam, 1:tf.keras.optimizers.SGD}
+
+learning_rate = 0.01
+optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
+#optimizer = optimizers[train_id%2](lr=learning_rate)
 tf.random.set_seed(train_id)
 np.random.seed(train_id)
 
@@ -47,7 +48,9 @@ rmod(tfsignals[:,:3,:]) #just initialize model
 
 with open(rmod.train_path+"training_details.txt", 'w') as f:
     f.write(str(rmod.optimizer.get_config()))
+    f.write("training time: "+str(datetime.now() - st))
 f.close()
+
 
 history = rmod.fit(x=tfsignals, y=tfsignals,
                      epochs=2000, callbacks = [CustomCallback(),
@@ -55,4 +58,7 @@ history = rmod.fit(x=tfsignals, y=tfsignals,
                                                                                    min_delta=0, patience=100,
                                                                                    verbose=0,
                                                                                    mode='min')])
-print("finished at "+str(datetime.now() - st))
+with open(rmod.train_path+"training_details.txt", 'w') as f:
+    f.write(str(rmod.optimizer.get_config()))
+    f.write("training time: "+str(datetime.now() - st))
+f.close()

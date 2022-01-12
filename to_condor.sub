@@ -1,19 +1,19 @@
 executable=subash_train.sh
 
-output = ../jobs/outs/$(Item)_$(ItemIndex).out
-error = ../jobs/errs/$(Item)_$(ItemIndex).err
-log = ../jobs/logs/$(Item)_$(ItemIndex).log
+output = ../jobs/outs/$(Item)_$(itraj).out
+error = ../jobs/errs/$(Item)_$(itraj).err
+log = ../jobs/logs/$(Item)_$(itraj).log
 request_cpus = 1
-request_memory = 4 GB
+request_memory = 2 GB
 requirements= Has_avx == true
-+flavour="short"
++flavour="medium"
 
 itraj=0
 ppp=500
 periods=40
 
-args=$(Item) $(periods) $(ItemIndex) $(ppp)
-queue 8 in seq (1,2,3,4,5,6,7,8,9,10)
+args=$(itraj) $(periods) $(Item) $(ppp)
+queue from seq 1 1 8|
 
 
 

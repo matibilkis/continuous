@@ -1,14 +1,14 @@
 executable=subash_conv.sh
 
 output = ../jobs/outs/traj_$(periods)_$(Item).out
-error = ../jobs/errs/$(Item).err
+error = ../jobs/errs/conv_$(Item).err
 log = ../jobs/logs/traj_$(periods)_$(Item).log
 request_cpus = 1
 request_memory = 2 GB
 +flavour="short"
 
 ppp=500
-periods = 40
+periods = 70
 
 args=$(Item) $(periods) $(ppp)
-queue from seq 601 1 1000|
+queue from seq 501 1 1000|
