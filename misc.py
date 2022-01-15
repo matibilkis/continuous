@@ -21,15 +21,14 @@ def sliced_dataset(signals, xicovs, t):
 
 
 def load_data(path, itraj=0):
-    means = np.load(path+"{}/means.npy".format(itraj), allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    states = np.load(path+"{}/states.npy".format(itraj), allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
     covs = np.load(path+"{}/covs.npy".format(itraj), allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
-    xicovs = np.load(path+"{}/xicovs.npy".format(itraj), allow_pickle=True).astype(np.float32) ## this is the \Chi(\Sigma) (evolution)
     signals = np.load(path+"{}/signals.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
     A = np.load(path+"{}/A.npy".format(itraj), allow_pickle=True).astype(np.float32)
     dt = np.load(path+"{}/dt.npy".format(itraj), allow_pickle=True)[0]
     C = np.load(path+"{}/C.npy".format(itraj), allow_pickle=True).astype(np.float32)
     D = np.load(path+"{}/D.npy".format(itraj), allow_pickle=True).astype(np.float32)
-    return means, covs, signals, [A, dt, C, D]
+    return states, covs, signals, [A, dt, C, D]
 
 
 def load_train_results(path="",train_path="",periods=20, ppp=1000, train_id=1):

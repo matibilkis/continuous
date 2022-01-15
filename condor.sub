@@ -1,0 +1,18 @@
+executable=subash.sh
+
+output = ../jobs/outs/$(Item).out
+error = ../jobs/errs/$(Item).err
+log = ../jobs/logs/$(Item).log
+request_cpus = 1
+request_memory = 4 GB
+requirements= Has_avx == true
++flavour="short"
+
+ppp=100
+periods=100
+
+args=$(Item) $(Item) $(periods) $(ppp)
+queue from seq 1 1 500|
+
+
+

@@ -18,7 +18,12 @@ parser.add_argument("--seed", type=int, default=0)
 
 args = parser.parse_args()
 
-periods, ppp, path, itraj, seed = int(float(args.periods)), args.ppp, args.path, int(float(args.itraj)), args.seed
+periods = args.periods
+ppp = args.ppp
+path = args.path
+itraj = args.itraj
+seed = args.seed
+
 path = path+"{}periods/{}ppp/".format(periods,ppp)
 
 generate_traj(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=seed) #

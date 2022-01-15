@@ -23,22 +23,31 @@ periods = args.periods
 ppp = args.ppp
 train_id = args.trainid
 
-#optimizer = {0:tf.keras.optimizers.Adam, 1:tf.keras.optimizers.SGD}
 
 learning_rate = 0.01
 optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
-#optimizer = optimizers[train_id%2](lr=learning_rate)
+
 tf.random.set_seed(train_id)
 np.random.seed(train_id)
 
 st = datetime.now()
-path = path+"{}periods/{}ppp/".format(periods,ppp)
+path = get_def_path()+"{}periods/{}ppp/".format(periods,ppp)
+times = np.linspace(0,periods,ppp*periods)
+
+truncation_times = [k for k in np.logspace(times[10],np.log10(times[-1]), 10)]
+index_series = np.argmin(np.abs(times - truncation_times[train_id]))
 
 
-means, covs, signals, coeffs = load_data(path, itraj=itraj)
+states, covs, signals, coeffs = load_data(path, itraj=itraj)
+
+times = times[:index_series]
+states = states[:index_series]
+covs = covs[:index_series]
+signals = signals[:index_series]
+
 tfsignals = tf.convert_to_tensor(signals)[tf.newaxis]
 A,dt,C,D = coeffs
-total_time = dt*ppp*periods
+total_time = times[-1]
 
 
 rmod = GRNNmodel(coeffs = [C.astype(np.float32),D.astype(np.float32),dt, total_time], traj_details=[periods, ppp, train_id, itraj], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)))
@@ -48,7 +57,6 @@ rmod(tfsignals[:,:3,:]) #just initialize model
 
 with open(rmod.train_path+"training_details.txt", 'w') as f:
     f.write(str(rmod.optimizer.get_config()))
-    f.write("training time: "+str(datetime.now() - st))
 f.close()
 
 
