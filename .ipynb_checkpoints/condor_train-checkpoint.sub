@@ -1,0 +1,26 @@
+executable=subash_train.sh
+
+trainid=9
+
+output = ../jobs/outs/$(Item)_$(trainid).out
+error = ../jobs/errs/$(Item)_$(trainid).err
+log = ../jobs/logs/$(Item)_$(trainid).log
+request_cpus = 1
+request_memory = 4 GB
+requirements= Has_avx == true
++flavour="medium"
+
+ppp=500
+periods=40
+
+args=$(Item) $(trainid) $(periods) $(ppp)
+queue from seq 1 1 500|
+
+output = ../jobs/outs/$(Item)_$(trainid).out
+error = ../jobs/errs/$(Item)_$(trainid).err
+log = ../jobs/logs/$(Item)_$(trainid).log
++flavour="medium"
+
+args=$(Item) $(trainid) $(periods) $(ppp)
+queue from seq 501 1 1000|
+

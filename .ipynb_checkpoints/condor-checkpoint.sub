@@ -4,15 +4,23 @@ output = ../jobs/outs/$(Item).out
 error = ../jobs/errs/$(Item).err
 log = ../jobs/logs/$(Item).log
 request_cpus = 1
-request_memory = 4 GB
+request_memory = 2 GB
 requirements= Has_avx == true
 +flavour="short"
 
-ppp=100
-periods=100
+ppp=500
+periods=40
 
-args=$(Item) $(Item) $(periods) $(ppp)
+args=$(Item) $(periods) $(ppp)
 queue from seq 1 1 500|
 
+output = ../jobs/outs/$(Item).out
+error = ../jobs/errs/$(Item).err
+log = ../jobs/logs/$(Item).log
+request_cpus = 1
+request_memory = 2 GB
+requirements= Has_avx == true
++flavour="short"
 
-
+args=$(Item) $(periods) $(ppp)
+queue from seq 501 1 1000|

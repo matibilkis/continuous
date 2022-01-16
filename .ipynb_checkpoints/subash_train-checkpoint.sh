@@ -1,9 +1,11 @@
 #!/bin/bash
 itraj=$1
-periods=$2
-trainid=$3
+trainid=$2
+periods=$3
 ppp=$4
+
 cd ~/continuous
 . ~/qenv_bilkis/bin/activate
-python3 main_train.py --itraj $itraj --periods $periods --trainid $trainid --ppp $ppp 
+python3 main_train.py --ppp $ppp --periods $periods --itraj $itraj --trainid $trainid
+echo "TRAINING done!"
 deactivate

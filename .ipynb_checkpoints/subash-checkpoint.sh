@@ -1,10 +1,9 @@
 #!/bin/bash
 itraj=$1
-seed=$2
-periods=$3
-ppp=$4
+periods=$2
+ppp=$3
 cd ~/continuous
 . ~/qenv_bilkis/bin/activate
-python3 main_traj.py --ppp $ppp --periods $periods --itraj $itraj --seed $seed
+python3 main_traj.py --ppp $ppp --periods $periods --itraj $itraj
 echo "integration done!"
 deactivate
