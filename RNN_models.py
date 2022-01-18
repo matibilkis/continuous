@@ -10,9 +10,10 @@ class Rcell(tf.keras.layers.Layer):
         self.state_size = state_size   ## Favorite: state_size = NoDependency([2, TensorShape([2,2])])
         super(Rcell, self).__init__()
         self.C, self.D, self.dt = coeffs
+        self.w=1
 
     def build(self, input_shape):
-        self.coeffs_A = self.add_weight(shape=(2, 2),
+        self.coeffs_A = self.add_weight(shape=(self.w, self.w),
                                       initializer='uniform',
                                       name='kernel')
         self.built = True
@@ -22,6 +23,8 @@ class Rcell(tf.keras.layers.Layer):
         sts, cov = states
 
         A = self.coeffs_A
+        if self.w == 1:
+            A = self.w*np.array([[0.,1.],[-1.,0.]]).astype(np.float32)
 
         output = tf.einsum('ij,bj->bi',self.C, sts)*self.dt
 
@@ -89,7 +92,7 @@ class GRNNmodel(tf.keras.Model):
             tape.watch(self.trainable_variables)
             preds = self(inputs)
             diff = tf.squeeze(preds - dys)
-            loss = tf.reduce_sum(tf.einsum('bj,bj->b',diff,diff))/(2*self.total_time) #this 2 comes from 
+            loss = tf.reduce_sum(tf.einsum('bj,bj->b',diff,diff))/(2*self.total_time) #this 2 comes from
         grads = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.trainable_variables))
         self.total_loss.update_state(loss)
@@ -97,7 +100,7 @@ class GRNNmodel(tf.keras.Model):
         self.gradient_history.update_state(grads)
         return {k.name:k.result() for k in self.metrics}
 
-    
+
 class Metrica(tf.keras.metrics.Metric):
     """
     This helps to monitor training (for instance one out of different losses),
@@ -126,7 +129,3 @@ class CustomCallback(tf.keras.callbacks.Callback):
         for k,v, in histories.items():
             np.save(self.model.train_path+"{}".format(k), v, allow_pickle=True)
         print("End epoch {} of training; got log keys: {}".format(epoch, keys))
-
-    
-
-    

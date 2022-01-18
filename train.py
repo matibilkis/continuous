@@ -38,7 +38,7 @@ truncation_times = [k for k in np.logspace(times[10],np.log10(times[-1]), 10)]
 index_series = np.argmin(np.abs(times - truncation_times[train_id]))
 
 
-states, covs, signals, coeffs = load_data(path, itraj=itraj)
+states, covs, signals, coeffs = load_data(periods=periods,ppp=ppp, itraj=itraj)
 
 times = times[:index_series]
 states = states[:index_series]
@@ -51,7 +51,7 @@ total_time = times[-1]
 
 
 rmod = GRNNmodel(coeffs = [C.astype(np.float32),D.astype(np.float32),dt, total_time], traj_details=[periods, ppp, train_id, itraj], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)))
-    
+
 rmod.compile(optimizer=optimizer)
 rmod(tfsignals[:,:3,:]) #just initialize model
 
