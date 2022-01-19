@@ -14,7 +14,6 @@ parser.add_argument("--ppp", type=int, default=500) ###points per period
 parser.add_argument("--periods", type=int, default=5)
 parser.add_argument("--path", type=str, default=defpath) #
 parser.add_argument("--itraj", type=int, default=1)
-parser.add_argument("--method", type=str, default="RK")
 
 args = parser.parse_args()
 
@@ -22,19 +21,15 @@ periods = args.periods
 ppp = args.ppp
 path = args.path
 itraj = args.itraj
-method = args.method
+method = "RK4"
 
 path = path+"{}periods/{}ppp/".format(periods,ppp)
 ### INTEGRATE TRAJ
-if method == "RK":
-    generate_traj_RK(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
-else:
-    generate_traj_Euler(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
+generate_traj_RK4(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
 
+states, covs, signals, [A,dt,C,D], params = load_data(periods=periods, ppp=ppp, itraj=itraj,method="RK4")
+eta, gamma, Lambda, omega, n = params
 
-
-### CHECK LOSS LANDSCAPE
-states, covs, signals, [A, dt, C, D ] = load_data(itraj=itraj,method=method, periods=periods, ppp=ppp)
 symplectic = np.array([[0,1],[-1,0]])
 e = np.pi/10
 parameters = np.arange(0,4*np.pi + e,e)
@@ -57,7 +52,7 @@ def evolve_simu_state(simu_st, simu_a, dy):
 for dy in tqdm(signals):
     for i in range(len(parameters)):
         preds[i].append(give_pred(simulated_states[i][-1][0]))
-        simulated_states[i].append(evolve_simu_state(simulated_states[i][-1], parameters[i]*symplectic, dy))
+        simulated_states[i].append(evolve_simu_state(simulated_states[i][-1], (parameters[i]*symplectic) + np.diag([-0.5*gamma]) , dy))
 
 
 landscape = {}

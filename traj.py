@@ -11,10 +11,10 @@ defpath = get_def_path()
 
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--ppp", type=int, default=500) ###points per period
-parser.add_argument("--periods", type=int, default=5)
+parser.add_argument("--periods", type=int, default=50)
 parser.add_argument("--path", type=str, default=defpath) #
 parser.add_argument("--itraj", type=int, default=1)
-parser.add_argument("--method", type=str, default="RK")
+parser.add_argument("--method", type=str, default="RK4")
 
 args = parser.parse_args()
 
@@ -26,7 +26,7 @@ method = args.method
 
 path = path+"{}periods/{}ppp/".format(periods,ppp)
 ### INTEGRATE TRAJ
-if method == "RK":
-    generate_traj_RK(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
+if method == "RK4":
+    generate_traj_RK4(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
 else:
     generate_traj_Euler(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)

@@ -6,10 +6,22 @@ from misc import get_def_path
 import os
 
 class Rcell(tf.keras.layers.Layer):
-    def __init__(self,state_size = NoDependency([2, TensorShape([2,2])]), coeffs=None):
-        self.state_size = state_size   ## Favorite: state_size = NoDependency([2, TensorShape([2,2])])
+    def __init__(self,
+                state_size = NoDependency([2, TensorShape([2,2])]),
+                params=None,
+                dt=None):
+
+        self.state_size = state_size
         super(Rcell, self).__init__()
-        self.C, self.D, self.dt = coeffs
+
+        self.eta, self.gamma, self.Lambda, self.omega, self.n = params
+        self.dt = dt
+
+        self.A_diag = np.diag([-.5*self.gamma]*2).astype(np.float32)
+        #A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
+        self.D = np.diag([(self.gamma*(self.n+0.5)) + self.Lambda]*2).astype(np.float32)
+        self.C = np.diag([np.sqrt(4*self.eta*self.Lambda)]*2).astype(np.float32)
+        self.symplectic = np.array([[0.,1.],[-1.,0.]]).astype(np.float32)
         self.w=1
 
     def build(self, input_shape):
@@ -24,7 +36,7 @@ class Rcell(tf.keras.layers.Layer):
 
         A = self.coeffs_A
         if self.w == 1:
-            A = self.w*np.array([[0.,1.],[-1.,0.]]).astype(np.float32)
+            A = A*self.symplectic + self.A_diag
 
         output = tf.einsum('ij,bj->bi',self.C, sts)*self.dt
 
@@ -48,9 +60,17 @@ class GRNNmodel(tf.keras.Model):
     In our case we have a single layer composed of a single (recurrent) unit, which is the GaussianDynamics_RecurrentCell one.
     """
 
-    def __init__(self, coeffs,traj_details,x0=tf.convert_to_tensor(np.array([[1,0]]).astype(np.float32)), cov_in=tf.eye(2), stateful=False):
+    def __init__(self,
+                params,
+                dt,
+                total_time,
+                traj_details,
+                x0=tf.convert_to_tensor(np.array([[1,0]]).astype(np.float32)),
+                cov_in=tf.eye(2),
+                stateful=False):
+
         super(GRNNmodel,self).__init__()
-        self.C, self.D, self.dt, self.total_time = coeffs
+        self.total_time = total_time
 
         self.x0 = x0
         self.cov_in = cov_in
@@ -58,7 +78,7 @@ class GRNNmodel(tf.keras.Model):
         self.total_loss = Metrica(name="total_loss")
         self.coeffsA = Metrica(name="Coeffs_A")
         self.gradient_history = Metrica(name="grads")
-        self.recurrent_layer = tf.keras.layers.RNN([Rcell(coeffs=[self.C, self.D, self.dt])], return_sequences=True, stateful=stateful)
+        self.recurrent_layer = tf.keras.layers.RNN([Rcell( dt=dt, params=params  )], return_sequences=True, stateful=stateful)
 
         periods, ppp, train_id, itraj = traj_details
         self.stateful = stateful

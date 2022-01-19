@@ -13,18 +13,20 @@ def ct(A):
     return np.transpose(np.conjugate(A))
 
 
-def load_data(path="", itraj=0, ppp=500,periods=40, method="RK"):
+def load_data(path="", itraj=1, ppp=500,periods=40, method="RK4"):
     if path == "":
         path = get_def_path()
     path +="{}periods/{}ppp/{}/{}/".format(periods,ppp,itraj, method)
     states = np.load(path+"states.npy".format(itraj), allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
     covs = np.load(path+"covs.npy".format(itraj), allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
     signals = np.load(path+"signals.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
-    A = np.load(path+"A.npy".format(itraj), allow_pickle=True).astype(np.float32)
-    dt = np.load(path+"dt.npy".format(itraj), allow_pickle=True)[0]
-    C = np.load(path+"C.npy".format(itraj), allow_pickle=True).astype(np.float32)
-    D = np.load(path+"D.npy".format(itraj), allow_pickle=True).astype(np.float32)
-    return states, covs, signals, [A, dt, C, D]
+    params = np.load(path+"params.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
+
+    eta, gamma, Lambda, omega, n = params
+    A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
+    D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
+    C = np.diag([np.sqrt(4*eta*Lambda)]*2)
+    return states, covs, signals, [A, 1/ppp, C, D], params
 
 
 def load_train_results(path="",train_path="",periods=20, ppp=1000, train_id=1):
