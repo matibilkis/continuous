@@ -2,9 +2,7 @@ import os
 import numpy as np
 from misc import ct
 from tqdm import tqdm
-import sdeint
 from scipy.integrate import solve_ivp
-
 
 def vector_to_matrix(v):
     return np.array([[v[0], v[1]],[v[2], v[3]]])
@@ -12,148 +10,173 @@ def matrix_to_vector(v):
     return np.array([v[0,0], v[0,1], v[1,0], v[1,1]])
 
 
-def generate_traj_RK(ppp=500, periods = 40, itraj=0, path = ".", seed=0):
+def euler(x,t,dt,fv,gv,parameters):
+    return x + (dt*fv(t,x,parameters=parameters)) + np.sqrt(dt)*gv(t,x,parameters=parameters)
 
-    times = np.linspace(0,periods,ppp*periods)
-    gamma = 1 #damping from outside
-    Gamma = 1 #measurement rate
-    eta = 1 # measurement efficiency
-    n = 2 # number of photons
+def RK4(x,t,dt, fv,gv, parameters):
+    ###https://people.math.sc.edu/Burkardt/cpp_src/stochastic_rk/stochastic_rk.cpp
+    #Runge-Kutta Algorithm for the Numerical Integration
+    #of Stochastic Differential Equations
+    ##
+    a21 =   0.66667754298442
+    a31 =   0.63493935027993
+    a32 =   0.00342761715422#D+00
+    a41 = - 2.32428921184321#D+00
+    a42 =   2.69723745129487#D+00
+    a43 =   0.29093673271592#D+00
+    a51 =   0.25001351164789#D+00
+    a52 =   0.67428574806272#D+00
+    a53 = - 0.00831795169360#D+00
+    a54 =   0.08401868181222#D+00
 
-    w = 2*np.pi
-    T = (2*np.pi)/w
+    q1 = 3.99956364361748#D+00
+    q2 = 1.64524970733585#D+00
+    q3 = 1.59330355118722#D+00
+    q4 = 0.26330006501868#D+00
 
+    t1 = t
+    x1 = x
+    k1 = dt*fv( t1, x1, parameters ) + np.sqrt(dt*q1)*gv( t1, x1, parameters)
+
+    t2 = t1 + (a21 * dt)
+    x2 = x1 + (a21 * k1)
+    k2 = dt * fv( t2, x2, parameters) + np.sqrt(dt*q2)*gv( t2, x2, parameters)
+
+    t3 = t1 + (a31 * dt)  + (a32 * dt)
+    x3 = x1 + (a31 * k1) + (a32 * k2)
+    k3 = dt * fv( t3 , x3, parameters) + np.sqrt(dt*q3)*gv( t3, x3, parameters)
+
+    t4 = t1 + (a41 * dt)  + (a42 * dt)  + (a43 * dt)
+    x4 = x1 + (a41 * k1) + (a42 * k2) + (a43 * k3)
+    k4 = dt * fv( t4, x4, parameters) + np.sqrt(dt*q4)* gv( t4, x4, parameters)
+
+    xstar = x1 + (a51 * k1) + (a52 * k2) + (a53 * k3) + (a54 * k4)
+    return xstar
+
+
+
+def generate_traj_RK4(ppp=500, periods = 40, itraj=0, path = ".", seed=0, **kwargs):
+
+    eta = kwargs.get("eta",1) #efficiency
+    gamma = kwargs.get("gamma",0.3) # damping (related both to D and to A)
+    Lambda = kwargs.get("Lambda",0.8) #rate of measurement
+    omega = kwargs.get("omega",2*np.pi) #rate of measurement
+    n = kwargs.get("n",10.0)
+
+    if omega < 1e-12:
+        periods = periods
+    else.
+        periods = int(periods*2*np.pi/omega)
     dt = 1/ppp
 
-    C = np.array([[np.sqrt(4*eta*Gamma), 0] ,[0, np.sqrt(4*eta*Gamma)]])
+    times = np.arange(0,periods+ dt, dt)
 
-    A = np.array([
-        [0., w],
-        [-w, 0.]])
+    
+    A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
+    #A = np.array([[0, omega], [-omega, 0]])
+    D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
+    C = np.diag([np.sqrt(4*eta*Lambda)]*2)
 
-    D = np.array([[gamma*(n + 0.5) + Gamma, 0], [0,gamma*(n + 0.5) + Gamma]])
-
-    su = n + 0.5 + Gamma/gamma
-    cov_in = np.array([[np.sqrt(1+ (16*eta*Gamma*su/gamma) -1)*gamma/(8*eta*Gamma), 0],
-                       [0,np.sqrt(1+ (16*eta*Gamma*su/gamma) -1)*gamma/(8*eta*Gamma)]])
+    cov_in = np.eye(2)
 
     xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
-
-
+    print("integrating ricatti eq... covariance...")
     def dcovdt(t,cov):
         cov= vector_to_matrix(cov)
         XiCov = xi(cov)
         ev_cov = np.dot(A,cov) + np.dot(cov, ct(A)) + D - np.dot(XiCov, ct(XiCov))
         return matrix_to_vector(ev_cov)
 
+    integrate_cov = solve_ivp(dcovdt, y0=matrix_to_vector(cov_in), t_span=(0,times[-1]), t_eval=times, max_step = dt, atol=1, rtol=1)
+    covs = np.reshape(integrate_cov.y.T, (len(times),2,2))
+
+    np.random.seed(seed)
+
+    def f(t,x,parameters=None):
+        return np.dot(A, x)
+
+    xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
+    def g(t,x,parameters=None):
+        gg = np.dot(xi(covs[parameters]),[np.random.normal(), np.random.normal()])
+        return gg
+
+    states = np.zeros((len(times),2))
+    states[0] = np.array([0.,0.])
+    print("integrating states")
+    for ind, t in enumerate(tqdm(times[:-1])):
+        states[ind+1] = RK4(states[ind], t, dt, f, g, parameters=ind)
+
+    diffs = states[1:]-states[:-1]
+    invsXiCov = np.array([np.linalg.inv(xi(cov)) for cov in covs[:-1]])
+    CAx = np.einsum('ij,bj->bi',C-A,states[:-1])*dt
+    signals = np.einsum('bij,bj->bi',invsXiCov,CAx + diffs)
+
+    coeffs = [C, A, D , dt]
+    params = [eta, gamma, Lambda, omega, n]
+
+    path = path + "{}/RK4/".format(itraj)
+    os.makedirs(path, exist_ok=True)
+    np.save(path+"states".format(itraj),np.array(states ))
+    np.save(path+"covs".format(itraj),np.array(covs ))
+    np.save(path+"signals".format(itraj),np.array(signals ))
+    np.save(path+"params".format(itraj),params)
+    return
+
+def generate_traj_Euler(ppp=4000, periods = 5, itraj=0, path = ".", seed=0,**kwargs):
+    eta = kwargs.get("eta",1) #efficiency
+    gamma = kwargs.get("gamma",0.3) # damping (related both to D and to A)
+    Lambda = kwargs.get("Lambda",0.8) #rate of measurement
+    omega = kwargs.get("omega",2*np.pi) #rate of measurement
+    n = kwargs.get("n",10.0)
+
+    periods = int(periods*2*np.pi/omega)
+    dt = 1/ppp
+
+    times = np.arange(0,periods+ dt, dt)
+
+    A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
+    D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
+    C = np.diag([np.sqrt(4*eta*Lambda)]*2)
+
+    cov_in = np.eye(2)
+
+    xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
+    def dcovdt(t,cov):
+        cov= vector_to_matrix(cov)
+        XiCov = xi(cov)
+        ev_cov = np.dot(A,cov) + np.dot(cov, ct(A)) + D - np.dot(XiCov, ct(XiCov))
+        return matrix_to_vector(ev_cov)
 
     integrate_cov = solve_ivp(dcovdt, y0=matrix_to_vector(cov_in), t_span=(0,times[-1]), t_eval=times, max_step = dt, atol=1, rtol=1)
     covs = np.reshape(integrate_cov.y.T, (len(times),2,2))
 
     np.random.seed(seed)
-    global i
-    global it
-    it=0
-    i=0
 
-    def f(x, t):
-        return np.dot(A,x)
+    def f(t,x,parameters=None):
+        return np.dot(A, x)
 
-    def g(x, t):
-        global it
-        global i
-        if it!=t:
-            i+=1
-            it=t
-        return xi(covs[i])
+    xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
+    def g(t,x,parameters=None):
+        gg = np.dot(xi(covs[parameters]),[np.random.normal(), np.random.normal()])
+        return gg
 
-    states = sdeint.itoSRI2(f, g, y0=np.array([1.,0.]), tspan=times)
+    states = np.zeros((len(times),2))
+    states[0] = np.array([0.,0.])
+    for ind, t in enumerate(tqdm(times[:-1])):
+        states[ind+1] = euler(states[ind], t, dt, f, g, parameters=ind)
+
     diffs = states[1:]-states[:-1]
     invsXiCov = np.array([np.linalg.inv(xi(cov)) for cov in covs[:-1]])
     CAx = np.einsum('ij,bj->bi',C-A,states[:-1])*dt
     signals = np.einsum('bij,bj->bi',invsXiCov,CAx + diffs)
-    coeffs = [C, A, D , dt]
 
-    path = path + "{}/RK/".format(itraj)
+    coeffs = [C, A, D , dt]
+    params = [eta, gamma, Lambda, omega, n]
+
+    path = path + "{}/RK4/".format(itraj)
     os.makedirs(path, exist_ok=True)
-    np.save(path+"states".format(itraj),states )
-    np.save(path+"covs".format(itraj),covs )
-    np.save(path+"signals".format(itraj),signals )
-    np.save(path+"D".format(itraj),D)
-    np.save(path+"C".format(itraj),C)
-    np.save(path+"dt".format(itraj),np.array([dt]))
-    np.save(path+"A".format(itraj),A)
-
-    return states, covs, signals, coeffs
-
-
-
-def generate_traj_Euler(ppp=4000, periods = 5, itraj=0, path = ".", seed=0):
-    #define parameters
-    print("generating trajectory")
-    np.random.seed(seed)
-
-    gamma = 1 #damping from outside
-    Gamma = 1 #measurement rate
-    eta = 1 # measurement efficiency
-    n = 2 # number of photons?
-
-    w = 2*np.pi
-    T = (2*np.pi)/w
-
-    C = np.array([[np.sqrt(4*eta*Gamma), 0] ,[0, np.sqrt(4*eta*Gamma)]])
-
-    A = np.array([
-        [0., w],
-        [-w, 0.]])
-
-    D = np.array([[gamma*(n + 0.5) + Gamma, 0], [0,gamma*(n + 0.5) + Gamma]])
-
-    su = n + 0.5 + Gamma/gamma
-    cov_in = np.array([[np.sqrt(1+ (16*eta*Gamma*su/gamma) -1)*gamma/(8*eta*Gamma), 0],
-                       [0,np.sqrt(1+ (16*eta*Gamma*su/gamma) -1)*gamma/(8*eta*Gamma)]])
-
-    dt = 1/ppp
-    total_points = int(periods*ppp)
-
-    xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
-
-    signals = []
-    covs = [cov_in]
-    means = [np.array([1.,0.])] ## initial condition
-    xicovs = [xi(covs[-1])]
-
-    for k in tqdm(range(total_points)):
-        x = means[-1]
-        cov = covs[-1]
-        XiCov = xicovs[-1]
-
-        ##deterministic (just to check)
-        #dy = np.dot(C, x )*dt
-        dy = np.dot(C, x + np.dot(np.linalg.pinv(C), np.random.randn(2)/np.sqrt(dt)))*dt # signal
-        signals.append(dy)
-
-        dx = np.dot(A - np.dot(XiCov,C), x)*dt + np.dot(XiCov, dy)  #evolution update (according to what you measure)
-        dcov = (np.dot(A,cov) + np.dot(cov, ct(A)) + D - np.dot(XiCov, ct(XiCov)))*dt  #covariance update
-
-        covs.append(covs[-1] + dcov)
-        means.append(means[-1] + dx)
-        xicovs.append(xi(covs[-1]))
-
-    means = np.array(means)
-    covs = np.array(covs)
-    xicovs = np.array(xicovs)
-    signals = np.array(signals)
-    coeffs = [C, A, D , dt]
-
-    os.makedirs(path+"{}/euler/".format(itraj), exist_ok=True)
-    np.save(path+"{}/euler/states".format(itraj),np.array(means) )
-    np.save(path+"{}/euler/covs".format(itraj),np.array(covs) )
-    np.save(path+"{}/euler/signals".format(itraj),np.array(signals) )
-    np.save(path+"{}/euler/xicovs".format(itraj),np.array(xicovs) )
-    np.save(path+"{}/euler/D".format(itraj),D)
-    np.save(path+"{}/euler/C".format(itraj),C)
-    np.save(path+"{}/euler/dt".format(itraj),np.array([dt]))
-    np.save(path+"{}/euler/A".format(itraj),A)
-
-    return means, covs, xicovs, signals, coeffs
+    np.save(path+"states".format(itraj),np.array(states ))
+    np.save(path+"covs".format(itraj),np.array(covs ))
+    np.save(path+"signals".format(itraj),np.array(signals ))
+    np.save(path+"params".format(itraj),params)
+    return

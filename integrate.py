@@ -63,12 +63,17 @@ def generate_traj_RK4(ppp=500, periods = 40, itraj=0, path = ".", seed=0, **kwar
     omega = kwargs.get("omega",2*np.pi) #rate of measurement
     n = kwargs.get("n",10.0)
 
-    periods = int(periods*2*np.pi/omega)
+    if omega < 1e-12:
+        periods = periods
+    else.
+        periods = int(periods*2*np.pi/omega)
     dt = 1/ppp
 
     times = np.arange(0,periods+ dt, dt)
 
+    
     A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
+    #A = np.array([[0, omega], [-omega, 0]])
     D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
     C = np.diag([np.sqrt(4*eta*Lambda)]*2)
 

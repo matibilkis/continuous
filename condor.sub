@@ -8,7 +8,7 @@ request_memory = 2 GB
 +flavour="short"
 
 ppp=500
-periods=100
+periods=1000
 
 args=$(Item) $(periods) $(ppp)
-queue from seq 1 1 100|
+queue from seq 1 1 8|

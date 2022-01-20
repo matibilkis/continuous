@@ -14,7 +14,6 @@ parser.add_argument("--ppp", type=int, default=500) ###points per period
 parser.add_argument("--periods", type=int, default=5)
 parser.add_argument("--path", type=str, default=defpath) #
 parser.add_argument("--itraj", type=int, default=1)
-parser.add_argument("--method", type=str, default="RK")
 
 args = parser.parse_args()
 
@@ -22,42 +21,42 @@ periods = args.periods
 ppp = args.ppp
 path = args.path
 itraj = args.itraj
-method = args.method
+method = "RK4"
 
 path = path+"{}periods/{}ppp/".format(periods,ppp)
 ### INTEGRATE TRAJ
-if method == "RK":
-    generate_traj_RK(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
-else:
-    generate_traj_Euler(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
+generate_traj_RK4(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj, omega=0)
 
+states, covs, signals, [A,dt,C,D], params = load_data(periods=periods, ppp=ppp, itraj=itraj,method="RK4")
+eta, gamma, Lambda, omega, n = params
 
-
-### CHECK LOSS LANDSCAPE
-states, covs, signals, [A, dt, C, D ] = load_data(itraj=itraj,method=method, periods=periods, ppp=ppp)
 symplectic = np.array([[0,1],[-1,0]])
-e = np.pi/10
-parameters = np.arange(0,4*np.pi + e,e)
+#e = np.pi/10
+#parameters = np.arange(0,4*np.pi + e,e)
+ep=0.05
+parameters = np.arange(0,1+ep,ep)
 
 preds = {t:[] for t in range(len(parameters))}
 simulated_states = {t:[[states[0], covs[0]]] for t in range(len(parameters))}
 
 
 give_pred = lambda st: np.dot(C,st)*dt
-xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
+xi = lambda cov,D: np.dot(cov, ct(C)) + ct(D)
 
-def evolve_simu_state(simu_st, simu_a, dy):
+def evolve_simu_state(simu_st, simu_a, simu_d, dy):
     x, cov = simu_st
-    XiCov = xi(cov)
+    XiCov = xi(cov, simu_d)
     dx = np.dot(simu_a - np.dot(XiCov,C), x)*dt + np.dot(XiCov, dy)  #evolution update (according to what you measure)
-    dcov = (np.dot(simu_a,cov) + np.dot(cov, ct(simu_a)) + D - np.dot(XiCov, ct(XiCov)))*dt  #covariance update
+    dcov = (np.dot(simu_a,cov) + np.dot(cov, ct(simu_a)) + simu_d - np.dot(XiCov, ct(XiCov)))*dt  #covariance update
     return [x + dx, cov + dcov]
 
 
 for dy in tqdm(signals):
     for i in range(len(parameters)):
         preds[i].append(give_pred(simulated_states[i][-1][0]))
-        simulated_states[i].append(evolve_simu_state(simulated_states[i][-1], parameters[i]*symplectic, dy))
+        simu_a =  symplectic + np.diag([-0.5*parameters[i]]) 
+        simu_d = np.diag([(parameters[i]*(n+0.5)) + Lambda]*2)
+        simulated_states[i].append(evolve_simu_state(simulated_states[i][-1], simu_a, simu_d, dy))
 
 
 landscape = {}
@@ -68,7 +67,7 @@ for length_series in tqdm(cut_series):
         losses.append(np.sum(np.square(np.array(preds[i])[:length_series] - signals[:length_series]))/(2*dt*length_series))
     landscape[length_series] = losses
 
-path_landscape=get_def_path()+"{}periods/{}ppp/{}/cost_landscape/".format(periods,ppp,itraj)
+path_landscape=get_def_path()+"{}periods/{}ppp/{}/cost_landscape/gamma1_".format(periods,ppp,itraj)
 os.makedirs(path_landscape,exist_ok=True)
 np.save(path_landscape+method,list(landscape.values()), allow_pickle=True)
 
