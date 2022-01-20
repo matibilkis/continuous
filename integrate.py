@@ -69,6 +69,7 @@ def generate_traj_RK4(ppp=500, periods = 40, itraj=0, path = ".", seed=0, **kwar
     times = np.arange(0,periods+ dt, dt)
 
     A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
+    #A = np.array([[0, omega], [-omega, 0]])
     D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
     C = np.diag([np.sqrt(4*eta*Lambda)]*2)
 
@@ -130,12 +131,15 @@ def generate_traj_Euler(ppp=4000, periods = 5, itraj=0, path = ".", seed=0,**kwa
     times = np.arange(0,periods+ dt, dt)
 
     A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
+    #A = np.array([[0, omega], [-omega, 0]])
     D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
     C = np.diag([np.sqrt(4*eta*Lambda)]*2)
 
     cov_in = np.eye(2)
 
     xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
+
+    print("integratiing cov")
     def dcovdt(t,cov):
         cov= vector_to_matrix(cov)
         XiCov = xi(cov)
@@ -153,6 +157,8 @@ def generate_traj_Euler(ppp=4000, periods = 5, itraj=0, path = ".", seed=0,**kwa
     xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
     def g(t,x,parameters=None):
         gg = np.dot(xi(covs[parameters]),[np.random.normal(), np.random.normal()])
+        for i in range(3):
+            f = [np.random.normal(), np.random.normal()]
         return gg
 
     states = np.zeros((len(times),2))
@@ -168,7 +174,7 @@ def generate_traj_Euler(ppp=4000, periods = 5, itraj=0, path = ".", seed=0,**kwa
     coeffs = [C, A, D , dt]
     params = [eta, gamma, Lambda, omega, n]
 
-    path = path + "{}/RK4/".format(itraj)
+    path = path + "{}/euler/".format(itraj)
     os.makedirs(path, exist_ok=True)
     np.save(path+"states".format(itraj),np.array(states ))
     np.save(path+"covs".format(itraj),np.array(covs ))
