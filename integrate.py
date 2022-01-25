@@ -75,16 +75,24 @@ def RK4(y0,tspan,dt):
         ss[ind+1] = RK4_step(ss[ind], t, dt, f, g, parameters=None)
     return ss
 
-def Euler(f, G, y0, tspan, dt):
+def Euler(f, G, y0, tspan, dt,**kwargs):
+    exp = kwargs.get("exp",False)
     N = len(tspan)
     y = np.zeros((N, len(y0)))
     y[0] = y0
+    def ev(ddt,eexp):
+        if eexp == True:
+            return 1.
+        else:
+            return ddt
+    dint = ev(dt,exp)
+    print(dint)
     for ind,t in enumerate(tqdm(tspan[:-1])):
         #dW = np.random.normal(0,np.sqrt(dt), (7))
         w0 = np.random.normal()*np.sqrt(dt)
         w1 = np.random.normal()*np.sqrt(dt)
         dW = np.array([w0, w1, w0, w1 , 0.,0.,0.])
-        y[ind+1] = y[ind] + f(y[ind], t)*dt + np.dot(G(y[ind], t), dW)
+        y[ind+1] = y[ind] + f(y[ind], t, exp=exp, dt=dt)*dint + np.dot(G(y[ind], t), dW)
     return y
 
 def dot(a, b):
@@ -186,9 +194,14 @@ def RosslerSRI2(f, G, y0, times, dt):
     return y
 
 
-def Fs(s,t, coeffs=None, params=None):
+def Fs(s,t, coeffs=None, params=None,exp=False, dt=1.):
     x = s[0:2]
-    xdot = np.dot(A,x)
+    print(dt, exp)
+    if exp == True:
+        ExpA = np.array([[np.cos(omega*dt), np.sin(omega*dt)], [-np.sin(omega*dt), np.cos(omega*dt)]])*np.exp(-gamma*dt/2)
+        xdot = np.dot(ExpA-np.eye(2), x)  #evolution update (according to what you measure)
+    else:
+        xdot = np.dot(A,x)
 
     y = s[2:4]
     ydot = np.dot(C,x)
@@ -264,6 +277,8 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
         solution = RosslerSRI2(Fs, Gs, s0, times, dt)
     elif method=="euler":
         solution = Euler(Fs, Gs, s0, times, dt)
+    elif method=="Expeuler":
+        solution = Euler(Fs, Gs, s0, times, dt,exp=True)
     elif method=="RK4":
         solution = RK4(s0,times,dt)
     states, signals, covs = convert_solution(solution)
