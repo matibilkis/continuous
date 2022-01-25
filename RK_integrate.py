@@ -32,19 +32,19 @@ def RK4(x,t,dt, fv,gv, parameters):
 
     t1 = t
     x1 = x
-    k1 = dt*fv( t1, x1, parameters ) + np.sqrt(dt*q1)*gv( t1, x1, parameters)
+    k1 = dt*fv( t1, x1, parameters ) + np.sqrt(dt*q1)*gv(t1, x1, parameters)
 
     t2 = t1 + (a21 * dt)
     x2 = x1 + (a21 * k1)
-    k2 = dt * fv( t2, x2, parameters) + np.sqrt(dt*q2)*gv( t2, x2, parameters)
+    k2 = dt * fv( t2, x2, parameters) + np.sqrt(dt*q2)*gv(t2, x2, parameters)
 
     t3 = t1 + (a31 * dt)  + (a32 * dt)
     x3 = x1 + (a31 * k1) + (a32 * k2)
-    k3 = dt * fv( t3 , x3, parameters) + np.sqrt(dt*q3)*gv( t3, x3, parameters)
+    k3 = dt * fv( t3 , x3, parameters) + np.sqrt(dt*q3)*gv(t3, x3, parameters)
 
     t4 = t1 + (a41 * dt)  + (a42 * dt)  + (a43 * dt)
     x4 = x1 + (a41 * k1) + (a42 * k2) + (a43 * k3)
-    k4 = dt * fv( t4, x4, parameters) + np.sqrt(dt*q4)* gv( t4, x4, parameters)
+    k4 = dt * fv( t4, x4, parameters) + np.sqrt(dt*q4)*gv(t4, x4, parameters)
 
     xstar = x1 + (a51 * k1) + (a52 * k2) + (a53 * k3) + (a54 * k4)
     return xstar
