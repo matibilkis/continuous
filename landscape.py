@@ -25,10 +25,13 @@ method = "RK4"
 
 path = path+"{}periods/{}ppp/".format(periods,ppp)
 ### INTEGRATE TRAJ
-generate_traj_RK4(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
+integrate(periods, ppp, method=method, itraj=itraj, path="")
 
-states, covs, signals, [A,dt,C,D], params = load_data(periods=periods, ppp=ppp, itraj=itraj,method="RK4")
+states, covs, signals, params = load_data(ppp=ppp, periods=periods, method="rossler")
+#states, covs, signals, [A,dt,C,D], params = load_data(periods=periods, ppp=ppp, itraj=itraj,method="RK4")
 eta, gamma, Lambda, omega, n = params
+[A,C,D] = build_matrix_from_params(params)
+
 
 symplectic = np.array([[0,1],[-1,0]])
 #e = np.pi/10
@@ -38,7 +41,6 @@ parameters = np.arange(0,1+ep,ep)
 
 preds = {t:[] for t in range(len(parameters))}
 simulated_states = {t:[[states[0], covs[0]]] for t in range(len(parameters))}
-
 
 give_pred = lambda st: np.dot(C,st)*dt
 xi = lambda cov,D: np.dot(cov, ct(C)) + ct(D)
@@ -57,7 +59,10 @@ for dy in tqdm(signals):
         simu_a =  symplectic + np.diag([-0.5*parameters[i]])
         simu_d = np.diag([(parameters[i]*(n+0.5)) + Lambda]*2)
         simulated_states[i].append(evolve_simu_state(simulated_states[i][-1], simu_a, simu_d, dy))
+
+
 path_landscape=get_def_path()+"{}periods/{}ppp/{}/cost_landscape/gamma1_".format(periods,ppp,itraj)
+
 for i,k in simulated_states.items():
     np.save(path_landscape+str(i),np.array(k), allow_pickle=True)
 
