@@ -26,7 +26,7 @@ method = args.method
 
 path = path+"{}periods/{}ppp/".format(periods,ppp)
 ### INTEGRATE TRAJ
-if method == "RK4":
-    generate_traj_RK4(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
-else:
-    generate_traj_Euler(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
+#if method == "RK4":
+generate_traj_RK4(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
+#else:
+#    generate_traj_Euler(ppp=ppp, periods = periods, itraj=itraj, path = path, seed=itraj)
