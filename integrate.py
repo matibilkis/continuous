@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from misc import get_def_path, ct
+import argparse
+from datetime import datetime
+import os
 
 def RK4_step(x,t,dt, fv,gv, parameters):
     ###https://people.math.sc.edu/Burkardt/cpp_src/stochastic_rk/stochastic_rk.cpp
@@ -75,24 +78,23 @@ def RK4(y0,tspan,dt):
         ss[ind+1] = RK4_step(ss[ind], t, dt, f, g, parameters=None)
     return ss
 
-def Euler(f, G, y0, tspan, dt,**kwargs):
+def Euler(ff, G, y0, tspan, dt,**kwargs):
     exp = kwargs.get("exp",False)
     N = len(tspan)
     y = np.zeros((N, len(y0)))
     y[0] = y0
-    def ev(ddt,eexp):
-        if eexp == True:
-            return 1.
-        else:
-            return ddt
-    dint = ev(dt,exp)
-    print(dint)
+
+    if exp is True:
+        dint = 1.
+    else:
+        dint= dt
+
     for ind,t in enumerate(tqdm(tspan[:-1])):
         #dW = np.random.normal(0,np.sqrt(dt), (7))
         w0 = np.random.normal()*np.sqrt(dt)
         w1 = np.random.normal()*np.sqrt(dt)
         dW = np.array([w0, w1, w0, w1 , 0.,0.,0.])
-        y[ind+1] = y[ind] + f(y[ind], t, exp=exp, dt=dt)*dint + np.dot(G(y[ind], t), dW)
+        y[ind+1] = y[ind] + ff(y[ind], t, exp=exp, dt=dt)*dint + np.dot(G(y[ind], t), dW)
     return y
 
 def dot(a, b):
@@ -196,7 +198,6 @@ def RosslerSRI2(f, G, y0, times, dt):
 
 def Fs(s,t, coeffs=None, params=None,exp=False, dt=1.):
     x = s[0:2]
-    print(dt, exp)
     if exp == True:
         ExpA = np.array([[np.cos(omega*dt), np.sin(omega*dt)], [-np.sin(omega*dt), np.cos(omega*dt)]])*np.exp(-gamma*dt/2)
         xdot = np.dot(ExpA-np.eye(2), x)  #evolution update (according to what you measure)
@@ -211,6 +212,8 @@ def Fs(s,t, coeffs=None, params=None,exp=False, dt=1.):
     varx_dot = ((0.5 + n)*gamma) - (varx*gamma) + Lambda - (4*eta*Lambda*covxp**2)  - ((0.5+n)*gamma  + Lambda + (2*varx*np.sqrt(eta*Lambda)))**2 + (2*covxp*omega)
     varp_dot = ((0.5 + n)*gamma) - (varp*gamma) + Lambda - (4*eta*Lambda*covxp**2) -  ((0.5+n)*gamma + Lambda + (2*varp*np.sqrt(eta*Lambda)))**2 - (2*covxp*omega)
     covxp_dot = covxp*(-(4*eta*varp) - (4*varx*eta) - (4*np.sqrt(eta*Lambda))  ) + covxp*gamma*(-1 -2*np.sqrt(eta*Lambda) - (4*n*np.sqrt(eta*Lambda))) + (varp*omega - varx*omega)
+
+
 
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
 
@@ -244,7 +247,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
 
     global A, C, D, eta, gamma, Lambda, omega, n, kill_noise
 
-    kill_noise = 0.
+    kill_noise = 1.
     eta = kwargs.get("eta",1) #efficiency
     gamma = kwargs.get("gamma",0.3) # damping (related both to D and to A)
     Lambda = kwargs.get("Lambda",0.8) #rate of measurement
@@ -260,8 +263,8 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     covxy0 = 0.
     s0 = np.array([x0, p0, yx0, yp0, varx0, varp0,covxy0])
 
-    #A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
-    A = np.array([[0., omega], [-omega, 0.]])
+    A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
+    #A = np.array([[0., omega], [-omega, 0.]])
 
     D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
     C = np.diag([np.sqrt(4*eta*Lambda)]*2)
@@ -277,7 +280,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
         solution = RosslerSRI2(Fs, Gs, s0, times, dt)
     elif method=="euler":
         solution = Euler(Fs, Gs, s0, times, dt)
-    elif method=="Expeuler":
+    elif method=="Expeuler": #this blows-up when the non-physical scenario...
         solution = Euler(Fs, Gs, s0, times, dt,exp=True)
     elif method=="RK4":
         solution = RK4(s0,times,dt)
@@ -297,9 +300,6 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     return times, states, signals, covs
 
 if __name__ == "__main__":
-    import argparse
-    from datetime import datetime
-    import os
 
     defpath = get_def_path()
 
