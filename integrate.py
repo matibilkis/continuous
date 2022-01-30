@@ -273,6 +273,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     covxy0 = 0.
     s0 = np.array([x0, p0, yx0, yp0, varx0, varp0,covxy0])
 
+### to change unphy
     if unphysical is True:
         A = np.array([[0., omega], [-omega, 0.]])
     else:
