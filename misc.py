@@ -13,17 +13,19 @@ def ct(A):
     return np.transpose(np.conjugate(A))
 
 
-def load_data(path="", itraj=1, ppp=500,periods=40, method="rossler"):
+def load_data(path="", itraj=1, ppp=500,periods=40, method="rossler", unphysical=False):
     if path == "":
         path = get_def_path()
     path +="{}periods/{}ppp/{}/{}/".format(periods,ppp, method, itraj)
-
-    times = np.load(path+"times.npy".format(itraj), allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
-    states = np.load(path+"states.npy".format(itraj), allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
-    covs = np.load(path+"covs.npy".format(itraj), allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
-    signals = np.load(path+"signals.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
-    params = np.load(path+"params.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
+    if unphysical is True:
+        path+="unphysical_"
+    times = np.load(path+"times.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    states = np.load(path+"states.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    covs = np.load(path+"covs.npy", allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
+    signals = np.load(path+"signals.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
+    params = np.load(path+"params.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
     #coeffs = np.load(path+"coeffs.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
+    print("Traj loaded \nppp: {}\nperiods: {}\nmethod: {}\nitraj: {}\nUnphyisical (testing): {}".format(ppp,periods,method,itraj, unphysical))
     return states, covs, signals, params, times
 
 def build_matrix_from_params(params):

@@ -15,6 +15,7 @@ parser.add_argument("--ppp", type=int, default=500) ###points per period
 parser.add_argument("--periods", type=int, default=5)
 parser.add_argument("--path", type=str, default=defpath) #
 parser.add_argument("--itraj", type=int, default=1)
+parser.add_argument("--method", type=str, default="rossler")
 
 args = parser.parse_args()
 
@@ -22,16 +23,21 @@ periods = args.periods
 ppp = args.ppp
 path = args.path
 itraj = args.itraj
-method ="rossler"
+method = args.method
+unphysical = True
 
 path = path+"{}periods/{}ppp/".format(periods,ppp)
 ### INTEGRATE TRAJ
-# integrate(periods, ppp, method="rossler", itraj=itraj, path="")
+eta = 1
+gamma = 1
+Lambda = 1
+n = 2
+omega = 2*np.pi
 
-
+integrate(periods, ppp, method=method, itraj=itraj, path="", unphysical=unphysical, eta=eta, Lambda=Lambda, n=n,omega=omega)
 print("traj integrated")
 
-states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method="rossler")
+states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, unphysical=unphysical, itraj=itraj)
 #states, covs, signals, [A,dt,C,D], params = load_data(periods=periods, ppp=ppp, itraj=itraj,method="RK4")
 eta, gamma, Lambda, omega, n = params
 [A,C,D] = build_matrix_from_params(params)
@@ -49,6 +55,7 @@ def evolve_simu_state(x,xE ,sigma, dy, simu_A, simu_exp_A, dt=1):
 
 
 
+
 sstates, sstatesE, scovs = {}, {} ,{}
 epo = np.pi/2
 omegas = np.arange(0,4*np.pi+epo, epo)
@@ -58,9 +65,11 @@ cuts = [int(k) for k in np.logspace(1,np.log10(len(times)-1), 10)]
 loss = np.zeros((len(omegas), len(gammas), len(cuts)))
 for indomega,omega in tqdm(enumerate(omegas)):
     for indgamma,gamma in enumerate(gammas):
-
         simu_exp_A = np.array([[np.cos(omega*dt), np.sin(omega*dt)], [-np.sin(omega*dt), np.cos(omega*dt)]])*np.exp(-gamma*dt/2)
-        simu_A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
+        if unphysical is True:
+            simu_A = np.array([[0, omega], [-omega, 0]])
+        else:
+            simu_A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
 
         sstates[str([omega, gamma])] = [states[0]]
         sstatesE[str([omega, gamma])] = [states[0]]
@@ -75,7 +84,9 @@ for indomega,omega in tqdm(enumerate(omegas)):
         for indcut, cut in enumerate(cuts):
             loss[indomega,indgamma, indcut] = np.sum(np.square(signals[:cut] - np.einsum('ij,bj->bi',C,sstates[str([omega,gamma])][:-1][:cut])*dt))/(2*times[cut])
 
-path_landscape=get_def_path()+"{}periods/{}ppp/{}/cost_landscape/".format(periods,ppp,itraj)
+path_landscape=get_def_path()+"{}periods/{}ppp/{}/cost_landscape/{}".format(periods,ppp,itraj,method)
+if unphysical is True:
+    path_landscape +="unphysical_"
 os.makedirs(path_landscape,exist_ok=True)
 np.save(path_landscape+"losses",loss)
 np.save(path_landscape+"omegas",omegas)

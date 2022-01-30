@@ -199,7 +199,9 @@ def RosslerSRI2(f, G, y0, times, dt):
 def Fs(s,t, coeffs=None, params=None,exp=False, dt=1.):
     x = s[0:2]
     if exp == True:
-        ExpA = np.array([[np.cos(omega*dt), np.sin(omega*dt)], [-np.sin(omega*dt), np.cos(omega*dt)]])*np.exp(-gamma*dt/2)
+        ExpA = np.array([[np.cos(omega*dt), np.sin(omega*dt)], [-np.sin(omega*dt), np.cos(omega*dt)]])
+        if unphysical is not True:
+            ExpA*=np.exp(-gamma*dt/2)
         xdot = np.dot(ExpA-np.eye(2), x)  #evolution update (according to what you measure)
     else:
         xdot = np.dot(A,x)
@@ -209,11 +211,17 @@ def Fs(s,t, coeffs=None, params=None,exp=False, dt=1.):
 
     varx, varp,covxp = s[4:]
 
-    varx_dot = ((0.5 + n)*gamma) - (varx*gamma) + Lambda - (4*eta*Lambda*covxp**2)  - ((0.5+n)*gamma  + Lambda + (2*varx*np.sqrt(eta*Lambda)))**2 + (2*covxp*omega)
-    varp_dot = ((0.5 + n)*gamma) - (varp*gamma) + Lambda - (4*eta*Lambda*covxp**2) -  ((0.5+n)*gamma + Lambda + (2*varp*np.sqrt(eta*Lambda)))**2 - (2*covxp*omega)
-    covxp_dot = covxp*(-(4*eta*varp) - (4*varx*eta) - (4*np.sqrt(eta*Lambda))  ) + covxp*gamma*(-1 -2*np.sqrt(eta*Lambda) - (4*n*np.sqrt(eta*Lambda))) + (varp*omega - varx*omega)
+    if unphysical is True:
+        varx_dot = ((0.5+n)*gamma)  + Lambda   +( 4*eta*Lambdacovxp**2) + ( (0.5+n)*gamma  + Lambda + 2*varx*np.sqrt(Lambda*eta)) **2 + (2*covxp*omega)
+        varp_dot = ((0.5+n)*gamma)  + Lambda   +( 4*eta*Lambdacovxp**2) + ( (0.5+n)*gamma  + Lambda + 2*varp*np.sqrt(Lambda*eta)) **2 - (2*covxp*omega)
+        covxp_dot =  (4*covxp*((varp*eta*Lambda) + (varx*eta*Lambda)  + np.sqrt(eta*Lambda)*((0.5+n)*gamma + Lambda)  ))   + omega*(varp -varx)
 
+    else:
 
+        varx_dot = ((0.5 + n)*gamma) - (varx*gamma) + Lambda - (4*eta*Lambda*covxp**2)  - ((0.5+n)*gamma  + Lambda + (2*varx*np.sqrt(eta*Lambda)))**2 + (2*covxp*omega)
+        varp_dot = ((0.5 + n)*gamma) - (varp*gamma) + Lambda - (4*eta*Lambda*covxp**2) -  ((0.5+n)*gamma + Lambda + (2*varp*np.sqrt(eta*Lambda)))**2 - (2*covxp*omega)
+        #covxp_dot = covxp*(-(4*eta*varp) - (4*varx*eta) - (4*np.sqrt(eta*Lambda))  ) + covxp*gamma*(-1 -2*np.sqrt(eta*Lambda) - (4*n*np.sqrt(eta*Lambda))) + (varp*omega - varx*omega)
+        covxp_dot = Lambda*covxp*4*((varp*eta)  + (varx*eta)  + np.sqrt(eta*Lambda) )   + (covxp*gamma*(-1 + 2*np.sqrt(eta*Lambda) + 4*np.sqrt(eta*Lambda)*n)) + omega*(varp - varx)
 
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
 
@@ -245,7 +253,7 @@ def convert_solution(ss):
 
 def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
 
-    global A, C, D, eta, gamma, Lambda, omega, n, kill_noise
+    global A, C, D, eta, gamma, Lambda, omega, n, kill_noise, unphysical
 
     kill_noise = 1.
     eta = kwargs.get("eta",1) #efficiency
@@ -253,6 +261,8 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     Lambda = kwargs.get("Lambda",0.8) #rate of measurement
     omega = kwargs.get("omega",2*np.pi) #rate of measurement
     n = kwargs.get("n",10.0)
+
+    unphysical = kwargs.get("unphysical",False)
 
     x0 = 1.
     p0 = 0.
@@ -263,8 +273,10 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     covxy0 = 0.
     s0 = np.array([x0, p0, yx0, yp0, varx0, varp0,covxy0])
 
-    A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
-    #A = np.array([[0., omega], [-omega, 0.]])
+    if unphysical is True:
+        A = np.array([[0., omega], [-omega, 0.]])
+    else:
+        A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
 
     D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
     C = np.diag([np.sqrt(4*eta*Lambda)]*2)
@@ -277,25 +289,31 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
 
     np.random.seed(itraj)
     if method=="rossler":
+        print("integrating with rossler")
         solution = RosslerSRI2(Fs, Gs, s0, times, dt)
     elif method=="euler":
+        print("integrating with euler")
         solution = Euler(Fs, Gs, s0, times, dt)
     elif method=="Expeuler": #this blows-up when the non-physical scenario...
+        print("integrating with Exp-euler")
         solution = Euler(Fs, Gs, s0, times, dt,exp=True)
     elif method=="RK4":
+        print("integrating with RK4")
         solution = RK4(s0,times,dt)
     states, signals, covs = convert_solution(solution)
 
     if path == "":
         path = get_def_path()
     path = path + "{}periods/{}ppp/{}/{}/".format(periods,ppp,method, itraj)
+    if unphysical is True:
+        path+="unphysical_"
 
     os.makedirs(path, exist_ok=True)
-    np.save(path+"times".format(itraj),np.array(times ))
-    np.save(path+"states".format(itraj),np.array(states ))
-    np.save(path+"covs".format(itraj),np.array(covs ))
-    np.save(path+"signals".format(itraj),np.array(signals ))
-    np.save(path+"params".format(itraj),params)
+    np.save(path+"times",np.array(times ))
+    np.save(path+"states",np.array(states ))
+    np.save(path+"covs",np.array(covs ))
+    np.save(path+"signals",np.array(signals ))
+    np.save(path+"params",params)
 
     return times, states, signals, covs
 
