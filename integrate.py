@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from misc import get_def_path, ct
+from misc import get_def_path, ct, s_to_cov
 import argparse
 from datetime import datetime
 import os
@@ -226,11 +226,6 @@ def Fs(s,t, coeffs=None, params=None,exp=False, dt=1.):
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
 
 
-def s_to_cov(s,begin_cov=4):
-    varx, varp,covxy = s[begin_cov:]
-    cov = np.array([[varx, covxy], [covxy, varp]])
-    return cov
-
 
 def Gs(s,t, coeffs=None, params=None):
     cov = s_to_cov(s)
@@ -273,11 +268,6 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     covxy0 = 0.
     s0 = np.array([x0, p0, yx0, yp0, varx0, varp0,covxy0])
 
-### to change unphy
-    if unphysical is True:
-        A = np.array([[0., omega], [-omega, 0.]])
-    else:
-        A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
 
     D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
     C = np.diag([np.sqrt(4*eta*Lambda)]*2)

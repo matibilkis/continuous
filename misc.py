@@ -12,6 +12,11 @@ def get_def_path():
 def ct(A):
     return np.transpose(np.conjugate(A))
 
+def s_to_cov(s,begin_cov=4):
+    varx, varp,covxy = s[begin_cov:]
+    cov = np.array([[varx, covxy], [covxy, varp]])
+    return cov
+
 
 def load_data(path="", itraj=1, ppp=500,periods=40, method="rossler", unphysical=False):
     if path == "":
