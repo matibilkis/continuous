@@ -119,9 +119,9 @@ def Gs(s,t, coeffs=None, params=None):
     return wieners*kill_noise
 
 
-def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
+def integrate(periods, ppp, reduce_ppp = 1, method="rossler", itraj=1, path="",**kwargs):
 
-    global A, C, D, Lambda, eta, gamma, omega, n, kappa, kill_noise
+    global A, C, D, Lambda, eta, gamma, omega, n, kappa, kill_noise, r_ppp
 
     kill_noise = 1.
     eta = kwargs.get("eta",1) #efficiency
@@ -129,6 +129,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     gamma = kwargs.get("gamma",0.3) # damping (related both to D and to A)
     omega = kwargs.get("omega",0)#2*np.pi) #rate of measurement
     n = kwargs.get("n",2.0)
+    r_ppp = reduce_ppp
 
     x0 = 1.
     p0 = 0.
@@ -166,6 +167,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
 
     if path == "":
         path = get_def_path()
+    path+="rppp{}/".format(r_ppp)
     path = path + "{}periods/{}ppp/{}/{}/".format(periods,ppp,method, itraj)
 
     os.makedirs(path, exist_ok=True)
