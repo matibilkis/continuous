@@ -8,36 +8,6 @@ import os
 from steps import RK4_step, Ikpw, RosslerStep
 
 
-def RK4(y0,tspan,dt):
-    def f(t,s,parameters=None):
-        x = s[0:2]
-        xdot = np.dot(A,x)
-        y = s[2:4]
-        ydot = np.dot(C,x)
-        varx, varp,covxp = s[4:]
-
-        ders = [(-2*covxp**2*eta*kappa + 2*covxp*omega - gamma*varx + gamma*(n + 0.5) - 2*varx**2*eta*kappa,
-      -covxp*gamma + omega*varp - omega*varx,
-      -2*covxp*omega - gamma*varp + gamma*(n + 0.5))]
-
-        varx_dot, covxp_dot, varp_dot = ders
-
-        return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
-
-    def g(t,s,parameters=None):
-        cov = s_to_cov(s)
-        XiCov = np.dot(cov, C.T) + Lambda.T
-        ww = np.zeros(s.shape[0])
-        noises = np.array([np.random.normal(), np.random.normal()])
-        ww[:2] = np.dot(XiCov, noises)
-        ww[2:4] = noises
-        return ww*kill_noise
-
-    ss = np.zeros((len(tspan),len(y0)))
-    ss[0] = y0
-    for ind, t in enumerate(tqdm(tspan[:-1])):
-        ss[ind+1] = RK4_step(ss[ind], t, dt, f, g, parameters=None)
-    return ss
 
 def Euler(ff, G, y0, tspan, dt,**kwargs):
     exp = kwargs.get("exp",False)
@@ -49,11 +19,22 @@ def Euler(ff, G, y0, tspan, dt,**kwargs):
     else:
         dtexp = dt
 
+    dW = np.zeros((len(tspan[:-1]), 7))
     for ind,t in enumerate(tqdm(tspan[:-1])):
         w0 = np.random.normal()*np.sqrt(dt)
         w1 = np.random.normal()*np.sqrt(dt)
-        dW = np.array([w0, w1, w0, w1 , 0.,0.,0.])
-        y[ind+1] = y[ind] + ff(y[ind], t, exp=exp, dt=dt)*dtexp + np.dot(G(y[ind], t), dW)
+        dW[ind,:] = np.array([w0, w1, w0, w1 , 0.,0.,0.])
+
+    tspan_jumps = tspan[:-1][::r_ppp]
+    print("len_times_now : ",int(len(dW)/r_ppp))
+    ddw = np.zeros((int(len(dW)/r_ppp),7))
+
+    for sl in range(r_ppp):
+        ddw+=dW[sl::r_ppp,:]
+    #ddw/=np.sqrt(r_ppp) ###normalize variance
+
+    for ind, t in enumerate(tqdm(tspan_jumps)):
+        y[ind+1] = y[ind] + ff(y[ind], t, exp=exp, dt=dt)*dtexp + np.dot(G(y[ind], t), ddw[ind,:])
     return y
 
 def RosslerSRI2(f, G, y0, times, dt):
@@ -67,21 +48,30 @@ def RosslerSRI2(f, G, y0, times, dt):
     m = len(y0)
 
     #dW = np.random.normal(0,np.sqrt(dt), (N-1, m))
-    dW = np.zeros((len(times), 7))
-    for k in range(len(times)):
+    dW = np.zeros((len(times[:-1]), 7))
+    for k in range(len(times[:-1])):
         w0 = np.random.normal()*np.sqrt(dt)
         w1 = np.random.normal()*np.sqrt(dt)
         dW[k,:] = np.array([w0, w1, w0, w1 , 0.,0.,0.])
 
-    #_, I = Ikpw(dW, dt)
-    _,I=Ikpw(dW,dt)
+
+    tspan_jumps = times[:-1][::r_ppp]
+    print("len_times_now : ",int(len(dW)/r_ppp))
+    ddw = np.zeros((int(len(dW)/r_ppp),7))
+
+    for sl in range(r_ppp):
+        ddw+=dW[sl::r_ppp,:]
+    #ddw/=np.sqrt(r_ppp) ###normalize variance
+
+    dt = r_ppp*dt
+    N = len(tspan_jumps)
+    _,I=Ikpw(ddw,dt)
     # allocate space for result
     y = np.zeros((N, d))
     y[0] = y0;
     Gn = np.zeros((d, m), dtype=y.dtype)
-
-    for ind, t in enumerate(tqdm(times[:-1])):
-        y[ind+1] = RosslerStep(t,y[ind], dW[ind,:], I[ind,:,:], dt, f,G, d, m)
+    for ind, t in enumerate(tqdm(tspan_jumps[:-1])):
+        y[ind+1] = RosslerStep(t,y[ind], ddw[ind,:], I[ind,:,:], dt, f,G, d, m)
     return y
 
 
@@ -119,7 +109,7 @@ def Gs(s,t, coeffs=None, params=None):
     return wieners*kill_noise
 
 
-def integrate(periods, ppp, reduce_ppp = 1, method="rossler", itraj=1, path="",**kwargs):
+def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
 
     global A, C, D, Lambda, eta, gamma, omega, n, kappa, kill_noise, r_ppp
 
@@ -129,7 +119,7 @@ def integrate(periods, ppp, reduce_ppp = 1, method="rossler", itraj=1, path="",*
     gamma = kwargs.get("gamma",0.3) # damping (related both to D and to A)
     omega = kwargs.get("omega",0)#2*np.pi) #rate of measurement
     n = kwargs.get("n",2.0)
-    r_ppp = reduce_ppp
+    r_ppp = kwargs.get("r_ppp",1)
 
     x0 = 1.
     p0 = 0.
@@ -189,6 +179,7 @@ if __name__ == "__main__":
     parser.add_argument("--periods",type=int, default=50)
     parser.add_argument("--ppp", type=int,default=500)
     parser.add_argument("--method", type=str,default="rossler")
+    parser.add_argument("--r_ppp", type=int,default=1)
 
     args = parser.parse_args()
     path = args.path
@@ -196,5 +187,6 @@ if __name__ == "__main__":
     periods = args.periods
     ppp = args.ppp
     method = args.method
+    r_ppp = args.r_ppp
 
-    integrate(periods, ppp, method=method, itraj=1, path="")
+    integrate(periods, ppp, method=method, itraj=1, path="",r_ppp = r_ppp)
