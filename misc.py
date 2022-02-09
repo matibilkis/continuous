@@ -18,6 +18,18 @@ def s_to_cov(s,begin_cov=4):
     return cov
 
 
+def convert_solution(ss):
+    states = ss[:,0:2]
+
+    signals = ss[:,2:4]
+    signals = signals[1:] - signals[:-1]
+
+    covss = ss[:,-3:]
+    covs = [s_to_cov(s,begin_cov=0) for s in covss]
+    return states, signals, covs
+
+
+
 def load_data(path="", itraj=1, ppp=500,periods=40, method="rossler", unphysical=False):
     if path == "":
         path = get_def_path()
