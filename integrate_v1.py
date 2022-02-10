@@ -86,9 +86,9 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     global A, C, D, Lambda, eta, gamma, omega, n, kappa, rppp, ders, noises
 
     eta = kwargs.get("eta",1) #efficiency
-    kappa = kwargs.get("kappa",1) #efficiency
-    gamma = kwargs.get("gamma",0.3) # damping (related both to D and to A)
-    omega = kwargs.get("omega",2*np.pi) #rate of measurement
+    kappa = kwargs.get("kappa",1) 
+    gamma = kwargs.get("gamma",0.3)
+    omega = kwargs.get("omega",2*np.pi)
     n = kwargs.get("n",2.0)
     rppp = kwargs.get("rppp",1)
 

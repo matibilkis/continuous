@@ -30,10 +30,10 @@ states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, metho
 [eta, gamma, kappa, omega, n] = params
 [C, A, D , Lambda] = build_matrix_from_params(params)
 
-xi = lambda cov,D: np.dot(cov, ct(C)) + ct(Lambda)
+xi = lambda cov,Lambda: np.dot(cov, ct(C)) + ct(Lambda)
 
 def evolve_simu_state(x,cov, dy, simu_A, internal_step):
-    XiCov = xi(cov, D)
+    XiCov = xi(cov, Lambda)
     dx = np.dot(simu_A-np.dot(XiCov,C),x)*internal_step  + np.dot(XiCov,dy)
     dcov = (np.dot(simu_A,cov) + np.dot(cov, ct(simu_A)) + D - np.dot(XiCov.T, XiCov))*internal_step
     return [x + dx, cov + dcov]
