@@ -13,28 +13,29 @@ def Euler(ff, G, y0, tspan, dt,**kwargs):
     exp = kwargs.get("exp",False)
     N = len(tspan)
     y = np.zeros((N, len(y0)))
-    y[0] = y0
     if exp is True:
         dtexp = 1.
     else:
         dtexp = dt
 
     dW = np.zeros((len(tspan[:-1]), 7))
-    for ind,t in enumerate(tqdm(tspan[:-1])):
+    for ind,t in enumerate(tspan[:-1]):
         w0 = np.random.normal()*np.sqrt(dt)
         w1 = np.random.normal()*np.sqrt(dt)
         dW[ind,:] = np.array([w0, w1, w0, w1 , 0.,0.,0.])
 
-    tspan_jumps = tspan[:-1][::r_ppp]
+    tspan_jumps = tspan[:-1] #i keep periods*ppp points (and not periods*ppp +1)
+    tspan_jumps = tspan[:-(len(tspan)%rpp)] #this is so we can split evenly
+    tspan_jumps = tspan[::rppp]
     print("len_times_now : ",int(len(dW)/r_ppp))
     ddw = np.zeros((int(len(dW)/r_ppp),7))
 
     for sl in range(r_ppp):
         ddw+=dW[sl::r_ppp,:]
-    #ddw/=np.sqrt(r_ppp) ###normalize variance
 
+    y[0] = y0
     for ind, t in enumerate(tqdm(tspan_jumps)):
-        y[ind+1] = y[ind] + ff(y[ind], t, exp=exp, dt=dt)*dtexp + np.dot(G(y[ind], t), ddw[ind,:])
+        y[ind+1] = y[ind] + ff(y[ind], t, dt=dt)*dtexp + np.dot(G(y[ind], t), ddw[ind,:])
     return y
 
 def RosslerSRI2(f, G, y0, times, dt):
@@ -42,12 +43,10 @@ def RosslerSRI2(f, G, y0, times, dt):
     dy = f(y,t) *dt + G(y,t) *dW
     borrowed from sdeint - python
     """
-    #(d, m, f, G, y0, tspan, dW, IJ) = _check_args(f, G, y0, tspan, dW, IJ)
     N = len(times)
     d = len(y0)
     m = len(y0)
 
-    #dW = np.random.normal(0,np.sqrt(dt), (N-1, m))
     dW = np.zeros((len(times[:-1]), 7))
     for k in range(len(times[:-1])):
         w0 = np.random.normal()*np.sqrt(dt)
@@ -61,12 +60,11 @@ def RosslerSRI2(f, G, y0, times, dt):
 
     for sl in range(r_ppp):
         ddw+=dW[sl::r_ppp,:]
-    #ddw/=np.sqrt(r_ppp) ###normalize variance
 
     dt = r_ppp*dt
     N = len(tspan_jumps)
     _,I=Ikpw(ddw,dt)
-    # allocate space for result
+
     y = np.zeros((N, d))
     y[0] = y0;
     Gn = np.zeros((d, m), dtype=y.dtype)
@@ -75,26 +73,36 @@ def RosslerSRI2(f, G, y0, times, dt):
     return y
 
 
-def Fs(s,t, exp=False, coeffs=None, params=None, dt=None):
+
+def Fs(s,t, coeffs=None, params=None, dt=None):
     """
-    maybe best is to have two functions...  flag on method
     """
     x = s[0:2]
-    if exp is True:
-        ExpA = np.array([[np.cos(omega*dt), np.sin(omega*dt)], [-np.sin(omega*dt), np.cos(omega*dt)]])
-        xdot = np.dot(ExpA-np.eye(2), x)  #evolution update (according to what you measure)
-    else:
-        xdot = np.dot(A,x)
+    xdot = np.dot(A,x)
 
     y = s[2:4]
     ydot = np.dot(C,x)
 
     varx, varp,covxp = s[4:]
 
-    ders = [-2*covxp**2*eta*kappa + 2*covxp*omega - gamma*varx + gamma*(n + 0.5) - 2*varx**2*eta*kappa,-covxp*gamma + omega*varp - omega*varx, -2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
+    varx_dot, covxp_dot, varp_dot = ders(varx, varp, covxp)
 
-    varx_dot, covxp_dot, varp_dot = ders
+    return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
 
+
+def Fs_exp(s,t, coeffs=None, params=None, dt=1.):
+    """
+    dt demanded for exp
+    """
+    x = s[0:2]
+    ExpA = np.array([[np.cos(omega*dt), np.sin(omega*dt)], [-np.sin(omega*dt), np.cos(omega*dt)]])
+    xdot = np.dot(ExpA-np.eye(2), x)  #evolution update (according to what you measure)
+
+    y = s[2:4]
+    ydot = np.dot(C,x)
+    varx, varp,covxp = s[4:]
+
+    varx_dot, covxp_dot, varp_dot = ders(varx, varp, covxp)
 
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
 
@@ -106,18 +114,17 @@ def Gs(s,t, coeffs=None, params=None):
     wieners = np.zeros((s.shape[0], s.shape[0]))
     wieners[:2,:2]  = XiCov
     wieners[2:4,2:4] = np.eye(2)
-    return wieners*kill_noise
+    return wieners
 
 
 def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
 
-    global A, C, D, Lambda, eta, gamma, omega, n, kappa, kill_noise, r_ppp
+    global A, C, D, Lambda, eta, gamma, omega, n, kappa, r_ppp, ders
 
-    kill_noise = 1.
     eta = kwargs.get("eta",1) #efficiency
     kappa = kwargs.get("kappa",1) #efficiency
     gamma = kwargs.get("gamma",0.3) # damping (related both to D and to A)
-    omega = kwargs.get("omega",0)#2*np.pi) #rate of measurement
+    omega = kwargs.get("omega",2*np.pi) #rate of measurement
     n = kwargs.get("n",2.0)
     r_ppp = kwargs.get("r_ppp",1)
 
@@ -135,24 +142,25 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     D = np.diag([(gamma*(n+0.5))]*2)
     Lambda = np.zeros((2,2))
 
+    ders = lambda varx, varp, covxp: [-2*covxp**2*eta*kappa + 2*covxp*omega - gamma*varx + gamma*(n + 0.5) - 2*varx**2*eta*kappa,-covxp*gamma + omega*varp - omega*varx, -2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
+
     dt = 1/ppp
     times = np.arange(0.,periods+dt,dt)
     coeffs = [C, A, D , Lambda, dt]
     params = [eta, gamma, kappa, omega, n]
 
     np.random.seed(itraj)
-    if method=="rossler":
+    if method.lower()=="rossler":
         print("integrating with rossler")
         solution = RosslerSRI2(Fs, Gs, s0, times, dt)
-    elif method=="euler":
+    elif method.lower()=="euler":
         print("integrating with euler")
         solution = Euler(Fs, Gs, s0, times, dt)
-    elif method=="Expeuler": #this blows-up when the non-physical scenario...
+    elif method.lower()=="expeuler": #this blows-up when the non-physical scenario...
         print("integrating with Exp-euler")
-        solution = Euler(Fs, Gs, s0, times, dt,exp=True)
-    elif method=="RK4":
-        print("integrating with RK4")
-        solution = RK4(s0,times,dt)
+        solution = Euler(Fs_exp, Gs, s0, times, dt, exp=True)
+    elif method.lower()=="rk4":
+        print("integrating with RK4 is deprecatred due to weak convergence.")
     states, signals, covs = convert_solution(solution)
 
     if path == "":
