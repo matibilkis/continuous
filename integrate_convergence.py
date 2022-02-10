@@ -9,33 +9,19 @@ from steps import RK4_step, Ikpw, RosslerStep
 
 
 
-def Euler(ff, G, y0, tspan, dt,**kwargs):
+def Euler(ff, G, y0, times, dt,**kwargs):
     exp = kwargs.get("exp",False)
-    N = len(tspan)
+    N = len(times)+1
     y = np.zeros((N, len(y0)))
+
     if exp is True:
         dtexp = 1.
     else:
         dtexp = dt
 
-    dW = np.zeros((len(tspan[:-1]), 7))
-    for ind,t in enumerate(tspan[:-1]):
-        w0 = np.random.normal()*np.sqrt(dt)
-        w1 = np.random.normal()*np.sqrt(dt)
-        dW[ind,:] = np.array([w0, w1, w0, w1 , 0.,0.,0.])
-
-    tspan_jumps = tspan[:-1] #i keep periods*ppp points (and not periods*ppp +1)
-    tspan_jumps = tspan[:-(len(tspan)%rpp)] #this is so we can split evenly
-    tspan_jumps = tspan[::rppp]
-    print("len_times_now : ",int(len(dW)/r_ppp))
-    ddw = np.zeros((int(len(dW)/r_ppp),7))
-
-    for sl in range(r_ppp):
-        ddw+=dW[sl::r_ppp,:]
-
     y[0] = y0
-    for ind, t in enumerate(tqdm(tspan_jumps)):
-        y[ind+1] = y[ind] + ff(y[ind], t, dt=dt)*dtexp + np.dot(G(y[ind], t), ddw[ind,:])
+    for ind, t in enumerate(tqdm(times)):
+        y[ind+1] = y[ind] + ff(y[ind], t, dt=dt)*dtexp + np.dot(G(y[ind], t), noises[ind,:])
     return y
 
 def RosslerSRI2(f, G, y0, times, dt):
@@ -43,35 +29,19 @@ def RosslerSRI2(f, G, y0, times, dt):
     dy = f(y,t) *dt + G(y,t) *dW
     borrowed from sdeint - python
     """
-    N = len(times)
+    N = len(times)+1
     d = len(y0)
     m = len(y0)
 
-    dW = np.zeros((len(times[:-1]), 7))
-    for k in range(len(times[:-1])):
-        w0 = np.random.normal()*np.sqrt(dt)
-        w1 = np.random.normal()*np.sqrt(dt)
-        dW[k,:] = np.array([w0, w1, w0, w1 , 0.,0.,0.])
-
-
-    tspan_jumps = times[:-1][::r_ppp]
-    print("len_times_now : ",int(len(dW)/r_ppp))
-    ddw = np.zeros((int(len(dW)/r_ppp),7))
-
-    for sl in range(r_ppp):
-        ddw+=dW[sl::r_ppp,:]
-
-    dt = r_ppp*dt
-    N = len(tspan_jumps)
-    _,I=Ikpw(ddw,dt)
+    _,I=Ikpw(noises,dt)
 
     y = np.zeros((N, d))
-    y[0] = y0;
+    y[0] = y0
     Gn = np.zeros((d, m), dtype=y.dtype)
-    for ind, t in enumerate(tqdm(tspan_jumps[:-1])):
-        y[ind+1] = RosslerStep(t,y[ind], ddw[ind,:], I[ind,:,:], dt, f,G, d, m)
-    return y
 
+    for ind, t in enumerate(tqdm(times)):
+        y[ind+1] = RosslerStep(t,y[ind], noises[ind,:], I[ind,:,:], dt, f,G, d, m)
+    return y
 
 
 def Fs(s,t, coeffs=None, params=None, dt=None):
@@ -84,9 +54,7 @@ def Fs(s,t, coeffs=None, params=None, dt=None):
     ydot = np.dot(C,x)
 
     varx, varp,covxp = s[4:]
-
     varx_dot, covxp_dot, varp_dot = ders(varx, varp, covxp)
-
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
 
 
@@ -101,12 +69,8 @@ def Fs_exp(s,t, coeffs=None, params=None, dt=1.):
     y = s[2:4]
     ydot = np.dot(C,x)
     varx, varp,covxp = s[4:]
-
     varx_dot, covxp_dot, varp_dot = ders(varx, varp, covxp)
-
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
-
-
 
 def Gs(s,t, coeffs=None, params=None):
     cov = s_to_cov(s)
@@ -119,14 +83,14 @@ def Gs(s,t, coeffs=None, params=None):
 
 def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
 
-    global A, C, D, Lambda, eta, gamma, omega, n, kappa, r_ppp, ders
+    global A, C, D, Lambda, eta, gamma, omega, n, kappa, rppp, ders, noises
 
     eta = kwargs.get("eta",1) #efficiency
     kappa = kwargs.get("kappa",1) #efficiency
     gamma = kwargs.get("gamma",0.3) # damping (related both to D and to A)
     omega = kwargs.get("omega",2*np.pi) #rate of measurement
     n = kwargs.get("n",2.0)
-    r_ppp = kwargs.get("r_ppp",1)
+    rppp = kwargs.get("rppp",1)
 
     x0 = 1.
     p0 = 0.
@@ -145,31 +109,54 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     ders = lambda varx, varp, covxp: [-2*covxp**2*eta*kappa + 2*covxp*omega - gamma*varx + gamma*(n + 0.5) - 2*varx**2*eta*kappa,-covxp*gamma + omega*varp - omega*varx, -2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
 
     dt = 1/ppp
-    times = np.arange(0.,periods+dt,dt)
-    coeffs = [C, A, D , Lambda, dt]
+    times = np.arange(0.,periods,dt)
+
+    coeffs = [C, A, D , Lambda, dt, rppp]
     params = [eta, gamma, kappa, omega, n]
 
+    ### what we integrate
+    remainder = (len(times)%rppp)
+    if remainder > 0:
+        tspan = times[:-remainder] #this is so we can split evenly
+    else:
+        tspan = times
+
+    #### generate long trajectory of noises
     np.random.seed(itraj)
+    dW = np.zeros((len(tspan), 7)) #I have ppp*periods points.
+    for ind,t in enumerate(tspan):
+        w0 = np.random.normal()*np.sqrt(dt)
+        w1 = np.random.normal()*np.sqrt(dt)
+        dW[ind,:] = np.array([w0, w1, w0, w1 , 0.,0.,0.])
+
+    integration_times = tspan[::rppp] #jump tspan with step rppp
+    noises = np.zeros((len(integration_times),7))
+    print("\n")
+    for sl in range(rppp):
+        print(dW[sl::rppp,:].shape, sl, len(times), remainder, len(integration_times), rppp, noises.shape, dW[::rppp, :].shape)
+        noises+=dW[sl::rppp,:]
+    integration_step = rppp*dt
+
     if method.lower()=="rossler":
         print("integrating with rossler")
-        solution = RosslerSRI2(Fs, Gs, s0, times, dt)
+        solution = RosslerSRI2(Fs, Gs, s0, integration_times, integration_step)
     elif method.lower()=="euler":
         print("integrating with euler")
-        solution = Euler(Fs, Gs, s0, times, dt)
+        solution = Euler(Fs, Gs, s0, integration_times, integration_step)
     elif method.lower()=="expeuler": #this blows-up when the non-physical scenario...
         print("integrating with Exp-euler")
-        solution = Euler(Fs_exp, Gs, s0, times, dt, exp=True)
+        solution = Euler(Fs_exp, Gs, s0, integration_times, integration_step, exp=True)
     elif method.lower()=="rk4":
         print("integrating with RK4 is deprecatred due to weak convergence.")
     states, signals, covs = convert_solution(solution)
 
     if path == "":
         path = get_def_path()
-    path+="rppp{}/".format(r_ppp)
+    path+="rppp{}/".format(rppp)
     path = path + "{}periods/{}ppp/{}/{}/".format(periods,ppp,method, itraj)
 
     os.makedirs(path, exist_ok=True)
-    np.save(path+"times",np.array(times ))
+    np.save(path+"times",np.array(integration_times ))
     np.save(path+"states",np.array(states ))
     np.save(path+"covs",np.array(covs ))
     np.save(path+"signals",np.array(signals ))
@@ -187,7 +174,7 @@ if __name__ == "__main__":
     parser.add_argument("--periods",type=int, default=50)
     parser.add_argument("--ppp", type=int,default=500)
     parser.add_argument("--method", type=str,default="rossler")
-    parser.add_argument("--r_ppp", type=int,default=1)
+    parser.add_argument("--rppp", type=int,default=1)
 
     args = parser.parse_args()
     path = args.path
@@ -195,6 +182,6 @@ if __name__ == "__main__":
     periods = args.periods
     ppp = args.ppp
     method = args.method
-    r_ppp = args.r_ppp
+    rppp = args.rppp
 
-    integrate(periods, ppp, method=method, itraj=1, path="",r_ppp = r_ppp)
+    integrate(periods, ppp, method=method, itraj=1, path="",rppp = rppp)
