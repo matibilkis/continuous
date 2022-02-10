@@ -131,9 +131,8 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
 
     integration_times = tspan[::rppp] #jump tspan with step rppp
     noises = np.zeros((len(integration_times),7))
-    print("\n")
     for sl in range(rppp):
-        print(dW[sl::rppp,:].shape, sl, len(times), remainder, len(integration_times), rppp, noises.shape, dW[::rppp, :].shape)
+        #print(dW[sl::rppp,:].shape, sl, len(times), remainder, len(integration_times), rppp, noises.shape, dW[::rppp, :].shape)
         noises+=dW[sl::rppp,:]
     integration_step = rppp*dt
 

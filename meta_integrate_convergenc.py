@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-windows = np.concatenate([(10**k)*np.arange(2,11) for k in range(4)])
+windows = np.concatenate([(10**k)*np.arange(2,11) for k in range(3)])
 method = "rossler"
 ppp = 10000
 periods = 100
