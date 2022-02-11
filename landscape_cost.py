@@ -19,6 +19,7 @@ parser.add_argument("--method", type=str, default="rossler")
 
 args = parser.parse_args()
 
+
 periods = args.periods
 ppp = args.ppp
 path = args.path
