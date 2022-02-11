@@ -166,6 +166,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
     np.save(path+"signals",np.array(signals ))
     np.save(path+"params",params)
 
+    print("traj saved in", path)
     return times, states, signals, covs
 
 if __name__ == "__main__":
@@ -190,4 +191,4 @@ if __name__ == "__main__":
     [eta, gamma, kappa, omega, n] = params
 
     integrate(periods, ppp, method=method, itraj=itraj, exp_path = exp_path ,rppp = rppp,
-                eta=eta, kappa = kappa,  gamma = gamma, n = n)
+                eta=eta, kappa = kappa,  gamma = gamma, n = n, omega = omega)

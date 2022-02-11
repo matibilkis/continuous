@@ -58,9 +58,10 @@ def convert_solution(ss):
 
 
 def get_path_config(periods=100,ppp=1000,itraj=1,method="rossler", rppp=1, exp_path=""):
-    pp = get_def_path()+ "{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
     if exp_path!="":
-        pp =exp_path+pp
+        pp = get_def_path()+ exp_path + "{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
+    else:
+        pp = get_def_path()+"{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
     return pp
 
 def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossler"):
