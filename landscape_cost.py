@@ -6,16 +6,18 @@ from misc import *
 import argparse
 import os
 import pickle
+import ast
 
 defpath = get_def_path()
 
 parser = argparse.ArgumentParser(add_help=False)
-parser.add_argument("--ppp", type=int) ###points per period
+parser.add_argument("--ppp", type=int)
 parser.add_argument("--periods", type=int)
 parser.add_argument("--path", type=str, default=defpath) #
 parser.add_argument("--itraj", type=int, default=1)
 parser.add_argument("--rppp", type=int, default=1)
 parser.add_argument("--method", type=str, default="rossler")
+parser.add_argument("--params", type=str, default="") #[eta, gamma, kappa, omega, n]
 
 args = parser.parse_args()
 
@@ -26,7 +28,11 @@ path = args.path
 itraj = args.itraj
 rppp = args.rppp
 method = args.method
-states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, path=get_def_path() + "rppp{}/".format(rppp))
+params = args.params
+
+params, exp_path = check_params(params)
+
+states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, exp_path=exp_path, rppp=rppp)
 
 [eta, gamma, kappa, omega, n] = params
 [C, A, D , Lambda] = build_matrix_from_params(params)
@@ -40,7 +46,6 @@ def evolve_simu_state(x,cov, dy, simu_A, internal_step):
     return [x + dx, cov + dcov]
 
 simu_states, simu_covs = {}, {}
-
 omegas = list(set([omega] + list(np.linspace(0, 2*omega, 10))))
 
 dt = 1/ppp
@@ -50,7 +55,6 @@ loss = np.zeros((len(omegas), len(cuts_final_time)))
 
 for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
     simu_A = np.array([[-.5*gamma, simu_omega], [-simu_omega, -0.5*gamma]])
-
     simu_states[simu_omega] = [states[0]]
     simu_covs[simu_omega] = [covs[0]]
 
@@ -62,7 +66,7 @@ for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
     for indcut, cut in enumerate(cuts_final_time):
         loss[ind_simu_omega, indcut] = np.sum(np.square(signals[:cut] - np.einsum('ij,bj->bi',C,simu_states[simu_omega][:-1][:cut])*dt))/(2*times[cut])
 
-path_landscape=get_def_path()+"{}periods/{}ppp/{}/cost_landscape/{}".format(periods,ppp,itraj,method)
+path_landscape= get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)+"landscape/"
 
 os.makedirs(path_landscape,exist_ok=True)
 np.save(path_landscape+"losses",loss)

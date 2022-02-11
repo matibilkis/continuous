@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from misc import get_def_path, ct, s_to_cov, convert_solution
+from misc import *#get_def_path, ct, s_to_cov, convert_solution, get_path_config
 import argparse
 from datetime import datetime
 import os
 from steps import RK4_step, Ikpw, RosslerStep
-
+import ast
 
 
 def Euler(ff, G, y0, times, dt,**kwargs):
@@ -81,16 +81,23 @@ def Gs(s,t, coeffs=None, params=None):
     return wieners
 
 
-def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
+def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
 
+    """
+    everything is in the get_def_path()
+
+    note that if you sweep params exp_path needs to specified
+    """
     global A, C, D, Lambda, eta, gamma, omega, n, kappa, rppp, ders, noises
 
     eta = kwargs.get("eta",1) #efficiency
-    kappa = kwargs.get("kappa",1) 
+    kappa = kwargs.get("kappa",1)
     gamma = kwargs.get("gamma",0.3)
     omega = kwargs.get("omega",2*np.pi)
     n = kwargs.get("n",2.0)
+
     rppp = kwargs.get("rppp",1)
+
 
     x0 = 1.
     p0 = 0.
@@ -107,6 +114,8 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     Lambda = np.zeros((2,2))
 
     ders = lambda varx, varp, covxp: [-2*covxp**2*eta*kappa + 2*covxp*omega - gamma*varx + gamma*(n + 0.5) - 2*varx**2*eta*kappa,-covxp*gamma + omega*varp - omega*varx, -2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
+
+    periods = int((2*np.pi/omega)*periods)
 
     dt = 1/ppp
     times = np.arange(0.,periods,dt)
@@ -132,7 +141,6 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
     integration_times = tspan[::rppp] #jump tspan with step rppp
     noises = np.zeros((len(integration_times),7))
     for sl in range(rppp):
-        #print(dW[sl::rppp,:].shape, sl, len(times), remainder, len(integration_times), rppp, noises.shape, dW[::rppp, :].shape)
         noises+=dW[sl::rppp,:]
     integration_step = rppp*dt
 
@@ -149,10 +157,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
         print("integrating with RK4 is deprecatred due to weak convergence.")
     states, signals, covs = convert_solution(solution)
 
-    if path == "":
-        path = get_def_path()
-    path+="rppp{}/".format(rppp)
-    path = path + "{}periods/{}ppp/{}/{}/".format(periods,ppp,method, itraj)
+    path = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)
 
     os.makedirs(path, exist_ok=True)
     np.save(path+"times",np.array(integration_times ))
@@ -165,22 +170,24 @@ def integrate(periods, ppp, method="rossler", itraj=1, path="",**kwargs):
 
 if __name__ == "__main__":
 
-    defpath = get_def_path()
-
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--path", type=str, default=defpath)
     parser.add_argument("--itraj", type=int, default=1)
     parser.add_argument("--periods",type=int, default=50)
     parser.add_argument("--ppp", type=int,default=500)
     parser.add_argument("--method", type=str,default="rossler")
     parser.add_argument("--rppp", type=int,default=1)
-
+    parser.add_argument("--params", type=str, default="") #[eta, gamma, kappa, omega, n]
     args = parser.parse_args()
-    path = args.path
-    itraj = args.itraj
+
+    itraj = args.itraj ###this determines the seed
     periods = args.periods
     ppp = args.ppp
     method = args.method
     rppp = args.rppp
+    params = args.params
 
-    integrate(periods, ppp, method=method, itraj=1, path="",rppp = rppp)
+    params, exp_path = check_params(params)
+    [eta, gamma, kappa, omega, n] = params
+
+    integrate(periods, ppp, method=method, itraj=itraj, exp_path = exp_path ,rppp = rppp,
+                eta=eta, kappa = kappa,  gamma = gamma, n = n)

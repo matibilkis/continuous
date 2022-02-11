@@ -1,4 +1,5 @@
 import numpy as np
+import ast
 
 def get_def_path():
     import getpass
@@ -8,6 +9,33 @@ def get_def_path():
     else:
         defpath = "/data/uab-giq/scratch/matias/quantera/trajectories/"
     return defpath
+
+def give_def_params():
+    ######  https://arxiv.org/pdf/2005.03429.pdf
+    omega = (2*np.pi)*(1.14)*1e6
+    n = 14
+    gamma = 19*2*np.pi#(4*np.pi*265/29)*1e-6
+    kappa = np.pi*0.36*1e3#4*np.pi*0.36*1e-3
+    eta = 0.74
+    # [eta, gamma, kappa, omega, n] = [1, .3, 1, 2*np.pi, 2]
+    return [eta, gamma, kappa, omega, n]
+
+
+def check_params(params):
+    if params == "":
+        paramms = give_def_params()
+        exp_path = ""
+    else:
+        if isinstance(params, str):
+            params = ast.literal_eval(params)
+        exp_path = '{}/'.format(params)
+    return params, exp_path
+
+
+
+def params_to_string(params):
+    return "'{}'".format(params)
+
 
 def ct(A):
     return np.transpose(np.conjugate(A))
@@ -29,11 +57,15 @@ def convert_solution(ss):
     return states, signals, covs
 
 
+def get_path_config(periods=100,ppp=1000,itraj=1,method="rossler", rppp=1, exp_path=""):
+    pp = get_def_path()+ "{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
+    if exp_path!="":
+        pp =exp_path+pp
+    return pp
 
-def load_data(path="", itraj=1, ppp=500,periods=40, method="rossler"):
-    if path == "":
-        path = get_def_path()
-    path +="{}periods/{}ppp/{}/{}/".format(periods,ppp, method, itraj)
+def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossler"):
+
+    path = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)
 
     times = np.load(path+"times.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
     states = np.load(path+"states.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
@@ -50,21 +82,21 @@ def build_matrix_from_params(params):
     A = np.array([[-gamma/2, omega],[-omega, -gamma/2]])
     D = np.diag([(gamma*(n+0.5))]*2)
     Lambda = np.zeros((2,2))
-    return [C, A, D , Lambda] 
+    return [C, A, D , Lambda]
 
 
-def load_train_results(path="",train_path="",periods=20, ppp=1000, train_id=1):
-    if path == "":
-        path = get_def_path()
-    if train_path == "":
-        train_path = path+"{}periods/{}ppp/training/train_id_{}/".format(periods, ppp, train_id)
-    else:
-        train_path = path+"{}periods/{}ppp/".format(periods,ppp) + train_path + "training/train_id_{}/".format(train_id)
-
-    hist_A = np.load(train_path+"Coeffs_A.npy")
-    hist_loss = np.load(train_path+"total_loss.npy")
-    hist_grads = np.load(train_path+"grads.npy")
-    return hist_A, hist_loss, hist_grads
+# def load_train_results(path="",train_path="",periods=20, ppp=1000, train_id=1):
+#     if path == "":
+#         path = get_def_path()
+#     if train_path == "":
+#         train_path = path+"{}periods/{}ppp/training/train_id_{}/".format(periods, ppp, train_id)
+#     else:
+#         train_path = path+"{}periods/{}ppp/".format(periods,ppp) + train_path + "training/train_id_{}/".format(train_id)
+#
+#     hist_A = np.load(train_path+"Coeffs_A.npy")
+#     hist_loss = np.load(train_path+"total_loss.npy")
+#     hist_grads = np.load(train_path+"grads.npy")
+#     return hist_A, hist_loss, hist_grads
 
 
 def sliced_dataset(signals, xicovs, t):

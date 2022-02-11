@@ -6,28 +6,33 @@ from misc import *
 import argparse
 import os
 import pickle
-
+import ast
 defpath = get_def_path()
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--ppp", type=int) ###points per period
 parser.add_argument("--periods", type=int)
-parser.add_argument("--path", type=str, default=defpath) #
 parser.add_argument("--itraj", type=int, default=1)
 parser.add_argument("--rppp", type=int, default=1)
 parser.add_argument("--method", type=str, default="rossler")
 parser.add_argument("--euler_rppp", type=int, default=1)
+parser.add_argument("--params", type=str, default="") #[eta, gamma, kappa, omega, n]
+
+
+
 args = parser.parse_args()
 
 periods = args.periods
 ppp = args.ppp
-path = args.path
 itraj = args.itraj
 rppp = args.rppp
 method = args.method
 euler_rppp = args.euler_rppp
+params = args.params
+
+params, exp_path = check_params(params)
 
 
-states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, path=get_def_path() + "rppp{}/".format(rppp))
+states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, exp_path = exp_path)
 [eta, gamma, kappa, omega, n] = params
 [C, A, D , Lambda] = build_matrix_from_params(params)
 
@@ -44,7 +49,6 @@ simu_states, simu_covs = {}, {}
 
 omegas = list(set([omega] + list(np.linspace(0, 2*omega, 10))))
 
-
 remainder = (len(times)%euler_rppp)
 if remainder > 0:
     tspan = times[:-remainder] #this is so we can split evenly
@@ -53,13 +57,11 @@ else:
     tspan = times
     signals_jump = signals
 
-signals_jump = signals_jump[::euler_rppp]
-
+signals_jump = np.stack([np.sum(signals_jump[k:(k+euler_rppp)], axis=0)  for k in range(int(len(signals_jump)/euler_rppp)) ])
 dt = (1/ppp)*euler_rppp
 
 for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
     simu_A = np.array([[-.5*gamma, simu_omega], [-simu_omega, -0.5*gamma]])
-
     simu_states[simu_omega] = [states[0]]
     simu_covs[simu_omega] = [covs[0]]
 
@@ -68,7 +70,7 @@ for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
         simu_states[simu_omega].append(simu[0])
         simu_covs[simu_omega].append(simu[1])
 
-path_kalman_dt =get_def_path()+"{}rppp/{}periods/{}ppp/{}/kalman_dt/euler_rppp{}/".format(rppp,periods,ppp,itraj,euler_rppp)
+path_kalman_dt = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)+"stroboscopic_euler_rppp{}/".format(euler_rppp)
 
 os.makedirs(path_kalman_dt,exist_ok=True)
 os.makedirs(path_kalman_dt+"states/",exist_ok=True)
