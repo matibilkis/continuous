@@ -77,7 +77,7 @@ def Gs(s,t, coeffs=None, params=None):
     XiCov = np.dot(cov, C.T) + Lambda.T
     wieners = np.zeros((s.shape[0], s.shape[0]))
     wieners[:2,:2]  = XiCov
-    wieners[2:4,2:4] = np.eye(2)
+    wieners[2:4,2:4] = proj_C#np.eye(2)
     return wieners
 
 
@@ -88,7 +88,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
 
     note that if you sweep params exp_path needs to specified
     """
-    global A, C, D, Lambda, eta, gamma, omega, n, kappa, rppp, ders, noises
+    global A, C, D, Lambda, eta, gamma, omega, n, kappa, rppp, ders, noises, proj_C
 
     eta = kwargs.get("eta",1) #efficiency
     kappa = kwargs.get("kappa",1)
@@ -96,29 +96,35 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
     omega = kwargs.get("omega",2*np.pi)
     n = kwargs.get("n",2.0)
 
+    print("integrating with parameters: \n eta {} \nkappa {}\ngamma {} \nomega {}\nn {}\n".format(eta,kappa,gamma,omega,n))
     rppp = kwargs.get("rppp",1)
-
 
     x0 = 1.
     p0 = 0.
     yx0 = 0.
     yp0 = 0.
-    varx0 = 1.
-    varp0 = 1.
-    covxy0 = 0.
+    varx0, varp0, covxy0 = 1.36861098e+00, 1.36861102e+00, -1.09428240e-04
+    # varx0 = 0.16634014
+    # varp0 = 14.423183
+    # covxy0 = 0.7283633
+# array([[ 1.36861098e+00, -1.09428240e-04],
+#        [-1.09428240e-04,  1.36861102e+00]])
+
     s0 = np.array([x0, p0, yx0, yp0, varx0, varp0,covxy0])
 
     C = np.array([[np.sqrt(2*eta*kappa),0],[0,0]]) #homodyne
+    proj_C = C/np.sum(C)
     A = np.array([[-gamma/2, omega],[-omega, -gamma/2]])
     D = np.diag([(gamma*(n+0.5))]*2)
     Lambda = np.zeros((2,2))
 
-    ders = lambda varx, varp, covxp: [-2*covxp**2*eta*kappa + 2*covxp*omega - gamma*varx + gamma*(n + 0.5) - 2*varx**2*eta*kappa,-covxp*gamma + omega*varp - omega*varx, -2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
+    ### obtained in scipy ipynb.. thorugh scipy
+    ders = lambda varx, varp, covxp: [2*covxp*omega - 2*eta*kappa*varx**2 - gamma*varx + gamma*(n + 0.5), -2*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx, -2*covxp**2*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
 
-    periods = int((2*np.pi/omega)*periods)
+    Period = 2*np.pi/omega
 
-    dt = 1/ppp
-    times = np.arange(0.,periods,dt)
+    dt = Period/ppp
+    times = np.arange(0.,Period*periods,dt)
 
     coeffs = [C, A, D , Lambda, dt, rppp]
     params = [eta, gamma, kappa, omega, n]

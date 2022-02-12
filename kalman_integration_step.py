@@ -36,13 +36,12 @@ states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, metho
 [eta, gamma, kappa, omega, n] = params
 [C, A, D , Lambda] = build_matrix_from_params(params)
 
-
-xi = lambda cov,D: np.dot(cov, ct(C)) + ct(Lambda)
+xi = lambda cov,Lambda: np.dot(cov, C.T) + Lambda.T
 
 def evolve_simu_state(x,cov, dy, simu_A, internal_step):
-    XiCov = xi(cov, D)
+    XiCov = xi(cov, Lambda)
     dx = np.dot(simu_A-np.dot(XiCov,C),x)*internal_step  + np.dot(XiCov,dy)
-    dcov = (np.dot(simu_A,cov) + np.dot(cov, ct(simu_A)) + D - np.dot(XiCov.T, XiCov))*internal_step
+    dcov = (np.dot(simu_A,cov) + np.dot(cov, ct(simu_A)) + D - np.dot(XiCov, XiCov.T))*internal_step
     return [x + dx, cov + dcov]
 
 simu_states, simu_covs = {}, {}
@@ -58,7 +57,9 @@ else:
     signals_jump = signals
 
 signals_jump = np.stack([np.sum(signals_jump[k:(k+euler_rppp)], axis=0)  for k in range(int(len(signals_jump)/euler_rppp)) ])
-dt = (1/ppp)*euler_rppp
+
+Period = 2*np.pi/omega
+dt = (Period/ppp)*euler_rppp
 
 for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
     simu_A = np.array([[-.5*gamma, simu_omega], [-simu_omega, -0.5*gamma]])

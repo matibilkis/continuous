@@ -1,6 +1,6 @@
 import numpy as np
 import ast
-
+import os
 def get_def_path():
     import getpass
     user = getpass.getuser()
@@ -23,7 +23,7 @@ def give_def_params():
 
 def check_params(params):
     if params == "":
-        paramms = give_def_params()
+        params = give_def_params()
         exp_path = ""
     else:
         if isinstance(params, str):
@@ -31,7 +31,18 @@ def check_params(params):
         exp_path = '{}/'.format(params)
     return params, exp_path
 
+def get_windows():
+    try:
+        windows = np.load(get_def_path()+"tmp/windows.npy")
+    except Exception:
+        windows = np.concatenate([(10**k)*np.arange(2,11) for k in range(2)])
+    return windows
 
+def save_windows(win):
+    wdir = get_def_path()+"tmp/"
+    os.makedirs(wdir,exist_ok=True)
+    np.save(wdir+"windows.npy", win)
+    return
 
 def params_to_string(params):
     return "'{}'".format(params)
@@ -64,7 +75,7 @@ def get_path_config(periods=100,ppp=1000,itraj=1,method="rossler", rppp=1, exp_p
         pp = get_def_path()+"{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
     return pp
 
-def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossler"):
+def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossler", display=False):
 
     path = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)
 
@@ -74,7 +85,8 @@ def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossle
     signals = np.load(path+"signals.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
     params = np.load(path+"params.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
     #coeffs = np.load(path+"coeffs.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
-    print("Traj loaded \nppp: {}\nperiods: {}\nmethod: {}\nitraj: {}".format(ppp,periods,method,itraj))
+    if display is True:
+        print("Traj loaded \nppp: {}\nperiods: {}\nmethod: {}\nitraj: {}".format(ppp,periods,method,itraj))
     return states, covs, signals, params, times
 
 def build_matrix_from_params(params):

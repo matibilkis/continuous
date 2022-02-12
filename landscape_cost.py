@@ -37,18 +37,22 @@ states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, metho
 [eta, gamma, kappa, omega, n] = params
 [C, A, D , Lambda] = build_matrix_from_params(params)
 
-xi = lambda cov,Lambda: np.dot(cov, ct(C)) + ct(Lambda)
+C_rank = np.linalg.matrix_rank(C)
+xi = lambda cov,Lambda: np.dot(cov, C.T) + Lambda.T
 
 def evolve_simu_state(x,cov, dy, simu_A, internal_step):
     XiCov = xi(cov, Lambda)
     dx = np.dot(simu_A-np.dot(XiCov,C),x)*internal_step  + np.dot(XiCov,dy)
-    dcov = (np.dot(simu_A,cov) + np.dot(cov, ct(simu_A)) + D - np.dot(XiCov.T, XiCov))*internal_step
+    dcov = (np.dot(simu_A,cov) + np.dot(cov, simu_A.T) + D - np.dot(XiCov, XiCov.T))*internal_step
     return [x + dx, cov + dcov]
 
 simu_states, simu_covs = {}, {}
-omegas = list(set([omega] + list(np.linspace(0, 2*omega, 10))))
+#omegas = list(set([omega] + list(np.linspace(0, 2*omega, 10))))
+omegas = np.array([omega]) + np.linspace(-omega/10, omega/10, 11) ## even number required so we have omega !!
 
-dt = 1/ppp
+Period = 2*np.pi/omega
+dt = (Period/ppp)*rppp ### this is because you might increase the dt as well! (1 for now)
+
 cuts_final_time = np.unique(np.concatenate([(10**k)*np.arange(1,11,1) for k in range(1,5)]))
 cuts_final_time = cuts_final_time[:(np.argmin(np.abs(cuts_final_time - len(times)))+1)] -1 #the -1 is for pyhton oindexing
 loss = np.zeros((len(omegas), len(cuts_final_time)))
@@ -64,7 +68,7 @@ for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
         simu_covs[simu_omega].append(simu[1])
 
     for indcut, cut in enumerate(cuts_final_time):
-        loss[ind_simu_omega, indcut] = np.sum(np.square(signals[:cut] - np.einsum('ij,bj->bi',C,simu_states[simu_omega][:-1][:cut])*dt))/(2*times[cut])
+        loss[ind_simu_omega, indcut] = np.sum(np.square(signals[:cut] - np.einsum('ij,bj->bi',C,simu_states[simu_omega][:-1][:cut])*dt))/(C_rank*times[cut])
 
 path_landscape= get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)+"landscape/"
 
