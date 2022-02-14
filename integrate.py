@@ -103,7 +103,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
     p0 = 0.
     yx0 = 0.
     yp0 = 0.
-    varx0, varp0, covxy0 = 1.36861098e+00, 1.36861102e+00, -1.09428240e-04
+    varx0, varp0, covxy0 = 1.3 ,1.3 ,-1e-4#1.36861098e+00, 1.36861102e+00, -1.09428240e-04
     # varx0 = 0.16634014
     # varp0 = 14.423183
     # covxy0 = 0.7283633
@@ -119,7 +119,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
     Lambda = np.zeros((2,2))
 
     ### obtained in scipy ipynb.. thorugh scipy
-    ders = lambda varx, varp, covxp: [2*covxp*omega - 2*eta*kappa*varx**2 - gamma*varx + gamma*(n + 0.5), -2*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx, -2*covxp**2*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
+    ders = lambda varx, varp, covxp: [2*covxp*omega - 2*eta*kappa*(varx**2) - gamma*varx + gamma*(n + 0.5), -2*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx, -2*(covxp**2)*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
 
     Period = 2*np.pi/omega
 
