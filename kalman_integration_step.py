@@ -7,7 +7,8 @@ import argparse
 import os
 import pickle
 import ast
-defpath = get_def_path()
+
+
 parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--ppp", type=int) ###points per period
 parser.add_argument("--periods", type=int)
@@ -16,8 +17,6 @@ parser.add_argument("--rppp", type=int, default=1)
 parser.add_argument("--method", type=str, default="rossler")
 parser.add_argument("--euler_rppp", type=int, default=1)
 parser.add_argument("--params", type=str, default="") #[eta, gamma, kappa, omega, n]
-
-
 
 args = parser.parse_args()
 
@@ -45,7 +44,6 @@ def evolve_simu_state(x,cov, dy, simu_A, internal_step):
     return [x + dx, cov + dcov]
 
 simu_states, simu_covs = {}, {}
-
 omegas = list(set([omega] + list(np.linspace(0, 2*omega, 10))))
 
 remainder = (len(times)%euler_rppp)
@@ -58,6 +56,7 @@ else:
 
 signals_jump = np.stack([np.sum(signals_jump[k:(k+euler_rppp)], axis=0)  for k in range(int(len(signals_jump)/euler_rppp)) ])
 
+### compute the right dt (i.e. the one used for integration, and then multiply ir by the corresponding factor)
 Period = 2*np.pi/omega
 dt = (Period/ppp)*euler_rppp
 

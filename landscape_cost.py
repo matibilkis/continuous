@@ -30,13 +30,15 @@ rppp = args.rppp
 method = args.method
 params = args.params
 
+rppp_reference = 1
+
+## load "real" trajectory
 params, exp_path = check_params(params)
-
-states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, exp_path=exp_path, rppp=rppp)
-
+states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, exp_path=exp_path, rppp=rppp_reference)
 [eta, gamma, kappa, omega, n] = params
 [C, A, D , Lambda] = build_matrix_from_params(params)
 
+## compute matrix
 C_rank = np.linalg.matrix_rank(C)
 xi = lambda cov,Lambda: np.dot(cov, C.T) + Lambda.T
 
@@ -51,7 +53,7 @@ simu_states, simu_covs = {}, {}
 omegas = np.array([omega]) + np.linspace(-omega/10, omega/10, 11) ## even number required so we have omega !!
 
 Period = 2*np.pi/omega
-dt = (Period/ppp)*rppp ### this is because you might increase the dt as well! (1 for now)
+dt = (Period/ppp)*rppp_reference ### this is because you might increase the dt as well! (1 for now, which is rppp_reference). NOTE: if you want to increase rppp you should also integrate the signals in time!
 
 cuts_final_time = np.unique(np.concatenate([(10**k)*np.arange(1,11,1) for k in range(1,5)]))
 cuts_final_time = cuts_final_time[:(np.argmin(np.abs(cuts_final_time - len(times)))+1)] -1 #the -1 is for pyhton oindexing
