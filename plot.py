@@ -66,7 +66,7 @@ if only_traj != 1:
     ### LOAD LANDSCAPE COST RESULTS
     path_landscape= get_path_config(periods = periods, ppp= ppp, rppp=rppp_reference, method=method, itraj=itraj, exp_path = exp_path)+"landscape/"
     loss = np.load(path_landscape+"losses.npy")
-    omegas = np.load(path_landscape+"omegas.npy")
+    omegas_landscape = np.load(path_landscape+"omegas.npy")
     cuts_final_time = np.load(path_landscape+"cuts.npy")
     omega_looking = omega
 
@@ -158,20 +158,25 @@ if only_traj != 1:
     print(loss.shape)
     print(cuts_final_time.shape)
     for k, cut in enumerate(cuts_final_time):
-        ax.plot(omegas, loss[:,k], label=times_reference[cut])
+        if (k%10 == 1) or (k == len(cuts_final_time)-1):
+            ax.plot(omegas_landscape, loss[:,k], label=times_reference[cut], linewidth=5)
+        else:
+            ax.plot(omegas_landscape, loss[:,k], linewidth=5)
     ax.set_xlabel(r'$\tilde{\omega}$')
-    ax.set_yscale("log")
+    ax.legend(prop={"size":25})
+    # ax.set_yscale("log")
 
     ax = fig.add_subplot(gs[4:6, 0:2])
-    ax.set_title("cost landscape \nlongest time trace")
-    ax.plot(loss[:,-1])
+    ax.set_title("cost landscape")
+    ax.plot(loss[:,-1], linewidth=5, label=" T_long = {}".format(times_reference[cut]))
     ax.set_xlabel(r'$\tilde{\omega}$')
+    ax.legend(prop={"size":25})
 
     ### ROSSLER STROBOSCOP
     ax = fig.add_subplot(gs[2:4, 2:6])
     ax.set_title("Errors Rossler integration - stroboscopic")
-    ax.scatter(errs_rossler_strobo.keys(), errs_rossler_strobo.values(), s=600)
-    ax.plot(errs_rossler_strobo.keys(), errs_rossler_strobo.values(), linewidth=5)
+    ax.scatter(errs_rossler_strobo.keys(), np.abs(list(errs_rossler_strobo.values())), s=600)
+    ax.plot(errs_rossler_strobo.keys(), np.abs(list(errs_rossler_strobo.values())), linewidth=5)
 
     ax.set_ylabel(r'$\sqrt{MSE}$')
     ax.set_xlabel(r'$window \; size$')
@@ -181,12 +186,11 @@ if only_traj != 1:
 
     #### KALMAN UPDATE ###
     ax = fig.add_subplot(gs[4:6, 2:6])
-    ax.set_title("KALMAN UPDATE ")#"\noriginal\nperiods {}\n ppp {}".format(periods, ppp))
-    ax.scatter(errs.keys(), errs.values(),s=500)
-    ax.plot(errs.keys(), errs.values(), linewidth=5)
+    ax.scatter(errs.keys(), np.abs(list(errs.values())),s=500)
+    ax.plot(errs.keys(), np.abs(list(errs.values())), linewidth=5)
     ax.set_yscale("log")
     ax.set_xscale("log")
-    ax.set_ylabel(r'$\sqrt{MSE}$'+"wrt rossler",size=20)
+    ax.set_ylabel(r'$\sqrt{MSE}$'+"KALMAN UPDATE vs. rossler",size=20)
     ax.set_xlabel("multiplying factor in the integration step", size=20)
 
 

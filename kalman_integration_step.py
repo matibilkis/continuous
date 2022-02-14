@@ -30,7 +30,6 @@ params = args.params
 
 params, exp_path = check_params(params)
 
-
 states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, exp_path = exp_path)
 [eta, gamma, kappa, omega, n] = params
 [C, A, D , Lambda] = build_matrix_from_params(params)
@@ -44,7 +43,7 @@ def evolve_simu_state(x,cov, dy, simu_A, internal_step):
     return [x + dx, cov + dcov]
 
 simu_states, simu_covs = {}, {}
-omegas = list(set([omega] + list(np.linspace(0, 2*omega, 10))))
+omegas = [omega]#list(set([omega] + list(np.linspace(0, 2*omega, 10))))
 
 remainder = (len(times)%euler_rppp)
 if remainder > 0:
