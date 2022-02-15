@@ -48,17 +48,16 @@ Period = 2*np.pi/params[-2]
 fourier_signal = np.fft.fft(signals[:,0])
 freqs_signal = np.fft.fftfreq(n = len(fourier_signal), d= Period/ppp)
 
-filter_cond = freqs_signal>=negs
+filter_cond = freqs_signal>negs
 freqs_signal = freqs_signal[filter_cond]
 spectra_signal = np.abs(fourier_signal[filter_cond])**2
 
 fourier_state = np.fft.fft(states[:,0])
 freqs_state = np.fft.fftfreq(n = len(fourier_state), d= Period/ppp)
 
-filter_cond = freqs_state>=negs
+filter_cond = freqs_state>negs
 freqs_state = freqs_state[filter_cond]
 spectra_state = np.abs(fourier_state[filter_cond])**2
-
 
 #### NOW PLOT TIME-WINDOWS IF avaialabel...
 if only_traj != 1:
@@ -155,8 +154,6 @@ if only_traj != 1:
     ##### COST LANDSCAPE ###
     ax = fig.add_subplot(gs[2:4, 0:2])
     ax.set_title("cost landscape", size=20)
-    print(loss.shape)
-    print(cuts_final_time.shape)
     for k, cut in enumerate(cuts_final_time):
         if (k%10 == 1) or (k == len(cuts_final_time)-1):
             ax.plot(omegas_landscape, loss[:,k], label=times_reference[cut], linewidth=5)
@@ -168,7 +165,8 @@ if only_traj != 1:
 
     ax = fig.add_subplot(gs[4:6, 0:2])
     ax.set_title("cost landscape")
-    ax.plot(loss[:,-1], linewidth=5, label=" T_long = {}".format(times_reference[cut]))
+    ax.plot(omegas_landscape, loss[:,-1], linewidth=5, label=" T_long = {}".format(times_reference[cut]))
+    ax.axvline(omega_looking,linewidth=3, color="black")
     ax.set_xlabel(r'$\tilde{\omega}$')
     ax.legend(prop={"size":25})
 

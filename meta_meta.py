@@ -6,16 +6,17 @@ from misc import *
 
 params = give_def_params() #params = [eta, gamma, kappa, omega, n]
 
-windows = np.concatenate([(10**k)*np.arange(2,5) for k in range(1)])
+windows = np.concatenate([(10**k)*np.arange(2,3) for k in range(1)])
+windows = []
 save_windows(windows)
 method = "rossler"
-ppp = 10000
-periods = 2
+ppp = 5000
+periods = 100
 rppp = 1
 rppp_reference = 1
 
 only_traj=0
-only_plot = 1
+only_plot = 0
 #integrate time trace with different steps
 if only_plot != 1:
     for rppp in [rppp] + list(windows):

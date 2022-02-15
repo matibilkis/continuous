@@ -50,7 +50,7 @@ def evolve_simu_state(x,cov, dy, simu_A, internal_step):
 
 simu_states, simu_covs = {}, {}
 #omegas = list(set([omega] + list(np.linspace(0, 2*omega, 10))))
-omegas = np.array([omega]) + np.linspace(-omega/10, omega/10, 11) ## even number required so we have omega !!
+omegas = np.array([omega]) + np.linspace(-omega/10, omega/10, 5) ## even number required so we have omega !!
 
 Period = 2*np.pi/omega
 dt = (Period/ppp)*rppp_reference ### this is because you might increase the dt as well! (1 for now, which is rppp_reference). NOTE: if you want to increase rppp you should also integrate the signals in time!

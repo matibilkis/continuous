@@ -6,24 +6,27 @@ def get_def_path():
     user = getpass.getuser()
     if user == "cooper-cooper":
         defpath = '../quantera/trajectories/'
+    elif user =="matias":
+        defpath = '../quantera/trajectories/'
     else:
         defpath = "/data/uab-giq/scratch/matias/quantera/trajectories/"
+
     return defpath
 
 def give_def_params():
     ######  https://arxiv.org/pdf/2005.03429.pdf
 
-    omega = (2*np.pi)*(1.14)*1e6
-    n = 14
-    gamma = 19*2*np.pi#(4*np.pi*265/29)*1e-6
-    kappa = np.pi*0.36*1e3#4*np.pi*0.36*1e-3
-    eta = 0.74
+    # omega = (2*np.pi)*(1.14)*1e6
+    # n = 14
+    # gamma = 19*2*np.pi#(4*np.pi*265/29)*1e-6
+    # kappa = np.pi*0.36*1e3#4*np.pi*0.36*1e-3
+    # eta = 0.74
 
     ### ASPELMAYER  p.16 (correctons w/giulio)
     n = 20
     g = 6*(10**5)
     k_aspel = 2*np.pi*(6.6)*10**5
-    [eta, gamma, kappa, omega, n] = [0.74,  2*np.pi*1e3,  2*(g**2)*n/k_aspel, 4.2*1e4, n]
+    [eta, gamma, kappa, omega, n] = [1,  2*np.pi*1e3,  2*(g**2)*n/k_aspel, 1*1e4, n]
 
     return [eta, gamma, kappa, omega, n]
 
