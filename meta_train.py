@@ -6,7 +6,7 @@ from misc import *
 
 params = give_def_params() #params = [eta, gamma, kappa, omega, n]
 method = "rossler"
-ppp = 1000
+ppp = 10000
 periods = 100
 rppp_reference = 1
 

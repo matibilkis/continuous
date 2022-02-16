@@ -11,12 +11,12 @@ windows = np.concatenate([(10**k)*np.arange(2,3) for k in range(1)])
 save_windows(windows)
 method = "rossler"
 ppp = 1000
-periods = 100
+periods = 10000
 rppp_reference = 1
 
 
-only_plot = 1
-
+only_plot = 0
+rppp=1
 only_traj=0
 no_kalman = 0
 #integrate time trace with different steps
