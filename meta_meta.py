@@ -16,7 +16,7 @@ rppp = 1
 rppp_reference = 1
 
 
-only_plot = 1
+only_plot = 0
 
 only_traj=0
 no_kalman = 1
