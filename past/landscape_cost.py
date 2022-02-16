@@ -40,52 +40,39 @@ states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, metho
 [eta, gamma, kappa, omega, n] = params
 [C, A, D , Lambda] = build_matrix_from_params(params)
 
-[C, A, D , Lambda] = [C.astype(np.float32), A.astype(np.float32), D.astype(np.float32) , Lambda.astype(np.float32)]
+## compute matrix
+C_rank = np.linalg.matrix_rank(C)
 
+def evolve_simu_state(x,cov, dy, simu_A, internal_step):
+    XiCov = np.dot(cov, C.T) + Lambda.T
+    dx = np.dot(simu_A-np.dot(XiCov,C),x)*internal_step  + np.dot(XiCov,dy)
+    dcov = (np.dot(simu_A,cov) + np.dot(cov, simu_A.T) + D - np.dot(XiCov, XiCov.T))*internal_step
+    return [x + dx, cov + dcov]
 
 simu_states, simu_covs = {}, {}
+#omegas = list(set([omega] + list(np.linspace(0, 2*omega, 10))))
 omegas = np.array([omega]) + np.linspace(-omega/10, omega/10, 5) ## even number required so we have omega !!
 
 Period = 2*np.pi/omega
-
-global dt
-
 dt = (Period/ppp)*rppp_reference ### this is because you might increase the dt as well! (1 for now, which is rppp_reference). NOTE: if you want to increase rppp you should also integrate the signals in time!
 
 cuts_final_time = np.unique(np.concatenate([(10**k)*np.arange(1,11,1) for k in range(1,5)]))
 cuts_final_time = cuts_final_time[:(np.argmin(np.abs(cuts_final_time - len(times)))+1)] -1 #the -1 is for pyhton oindexing
-
 loss = np.zeros((len(omegas), len(cuts_final_time)))
 
 
-
-@jit(nopython=True)
-def integrate_with_omega(simu_omega,ind_simu_omega, signals, simu_A, simu_states_omega, simu_covs_omega):
-    for ind,dy in enumerate(signals):
-
-        x = simu_states_omega[-1].astype(np.float32)
-        cov = simu_covs_omega[-1].astype(np.float32)
-
-        XiCov = np.dot(cov, C.T) + Lambda.T
-        dx = np.dot(simu_A-np.dot(XiCov,C),x)*dt  + np.dot(XiCov,dy)
-        dcov = (np.dot(simu_A,cov) + np.dot(cov, simu_A.T) + D - np.dot(XiCov, XiCov.T))*dt
-
-        simu_states_omega.append( (x + dx).astype(np.float32))
-        simu_covs_omega.append( (cov + dcov).astype(np.float32))
-
-    return simu_states_omega, simu_covs_omega
-
-
 for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
-    simu_A = np.array([[-.5*gamma, simu_omega], [-simu_omega, -0.5*gamma]]).astype(np.float32)
-    simu_states[simu_omega] = [states[0].astype(np.float32)]
-    simu_covs[simu_omega] = [covs[0].astype(np.float32)]
+    simu_A = np.array([[-.5*gamma, simu_omega], [-simu_omega, -0.5*gamma]])
+    simu_states[simu_omega] = [states[0]]
+    simu_covs[simu_omega] = [covs[0]]
 
-    simu_states[simu_omega], simu_covs[simu_omega] = integrate_with_omega(simu_omega, ind_simu_omega, signals, simu_A, simu_states[simu_omega], simu_covs[simu_omega])
+    for ind,dy in enumerate(tqdm(signals)):
+        simu = evolve_simu_state(simu_states[simu_omega][-1], simu_covs[simu_omega][-1], dy, simu_A,  dt)
+        simu_states[simu_omega].append(simu[0])
+        simu_covs[simu_omega].append(simu[1])
 
     for indcut, cut in enumerate(cuts_final_time):
-        loss[ind_simu_omega, indcut] = np.sum(np.square(signals[:cut] - np.einsum('ij,bj->bi',C,simu_states[simu_omega][:-1][:cut])*dt))
-        loss[ind_simu_omega, indcut] =  (loss[ind_simu_omega, indcut] - times[cut])/(2*C[0,0]*dt**(3/2))  ### assuming we have homodyne, otherwise we should take inverse of C...!
+        loss[ind_simu_omega, indcut] = np.sum(np.square(signals[:cut] - np.einsum('ij,bj->bi',C,simu_states[simu_omega][:-1][:cut])*dt))/(C_rank*times[cut])
 
 path_landscape= get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)+"landscape/"
 
@@ -97,3 +84,5 @@ np.save(path_landscape+"cuts",cuts_final_time)
 os.makedirs(path_landscape+"simu_states/",exist_ok=True)
 for k, v in simu_states.items():
     np.save(path_landscape+"simu_states/{}".format(k), list(v))
+#with open(path_landscape+"simu_states.pickle","wb") as f:#
+#    pickle.dump(simu_states,f, protocol=pickle.HIGHEST_PROTOCOL)
