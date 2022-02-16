@@ -75,14 +75,14 @@ simu_states = [states[0].astype(np.float32)]
 simu_covs = [covs[0].astype(np.float32)]
 
 print("Euler integrating the signals!")
-simu_states, simu_covs = integrate_euler(signals, simu_A, simu_states, simu_covs)
+simu_states, simu_covs = integrate_euler(signals_jump, simu_A, simu_states, simu_covs)
 
 
 path_kalman_dt = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)+"stroboscopic_euler_rppp{}/".format(euler_rppp)
 
 os.makedirs(path_kalman_dt,exist_ok=True)
 
-sqrt_mse = np.sqrt(np.mean( ( simu_states - states[::euler_rppp])**2 ))
+sqrt_mse = np.sqrt(np.mean( ( np.array(simu_states) - states[::euler_rppp])**2 ))
 
 np.save(path_kalman_dt+"sqrt_mse",[sqrt_mse])
 # os.makedirs(path_kalman_dt+"states/",exist_ok=True)
