@@ -14,6 +14,7 @@ parser.add_argument("--rppp", type=int, default=1)
 parser.add_argument("--method", type=str, default="rossler")
 parser.add_argument("--params", type=str, default="") #[eta, gamma, kappa, omega, n]
 parser.add_argument("--only_traj", type=int, default=0) #[eta, gamma, kappa, omega, n]
+parser.add_argument("--no_kalman", type=int, default=0) #[eta, gamma, kappa, omega, n]
 
 
 args = parser.parse_args()
@@ -25,6 +26,7 @@ rppp = args.rppp
 method = args.method
 params = args.params
 only_traj = args.only_traj
+no_kalman = args.no_kalman
 
 rppp_reference = 1
 
@@ -83,19 +85,21 @@ if only_traj != 1:
         errs_rossler_strobo[rppp] = np.sqrt(np.mean(np.square(states[::rppp] - rossler_dt[rppp])))
 
     ########## load strobosocpic euler
-    states_eu_opt = {}
-    for indi, eu_rppp in enumerate(([1] + list(windows))):
-        path_kalman_dt = get_path_config(periods = periods, ppp= ppp, rppp=rppp_reference, method=method, itraj=itraj, exp_path=exp_path)+"stroboscopic_euler_rppp{}/".format(eu_rppp)
-        if indi==0:
-            omegas = np.load(path_kalman_dt+"omegas.npy")
-        try:
-            states_eu_opt[eu_rppp] = np.load(path_kalman_dt+"states/states{}.npy".format(np.argmin(np.abs(np.array(omegas)-omega_looking))))
-        except Exception:
-            print("loading error in kalman dt..{}".format([indi, eu_rppp, "line 93", path_kalman_dt]))
-            pass
-    errs = {}
-    for rdt in states_eu_opt.keys():
-        errs[rdt] = np.sqrt(np.mean(np.square(states[::rdt] - states_eu_opt[rdt])))
+
+    if no_kalman != 1:
+        states_eu_opt = {}
+        for indi, eu_rppp in enumerate(([1] + list(windows))):
+            path_kalman_dt = get_path_config(periods = periods, ppp= ppp, rppp=rppp_reference, method=method, itraj=itraj, exp_path=exp_path)+"stroboscopic_euler_rppp{}/".format(eu_rppp)
+            if indi==0:
+                omegas = np.load(path_kalman_dt+"omegas.npy")
+            try:
+                states_eu_opt[eu_rppp] = np.load(path_kalman_dt+"states/states{}.npy".format(np.argmin(np.abs(np.array(omegas)-omega_looking))))
+            except Exception:
+                print("loading error in kalman dt..{}".format([indi, eu_rppp, "line 93", path_kalman_dt]))
+                pass
+        errs = {}
+        for rdt in states_eu_opt.keys():
+            errs[rdt] = np.sqrt(np.mean(np.square(states[::rdt] - states_eu_opt[rdt])))
 
 #### PLOTING
 
@@ -137,13 +141,16 @@ ax = fig.add_subplot(gs[0,4:6])
 ax.plot(freqs_signal,spectra_signal)
 ax.set_ylabel("|dy(f)|^2")
 ax.set_xlabel("f")
-#ax.axvline(params[-2]/(2*np.pi),color="black")
+ax.axvline(params[-2]/(2*np.pi),color="black")
+ax.axvline(-params[-2]/(2*np.pi),color="black")
+
 ax.set_xlim([-10*fomega,10*fomega])
 ax.set_yscale("log")
 
 ax = fig.add_subplot(gs[1,4:6])
 ax.plot(freqs_state,spectra_state)
-#ax.axvline(params[-2]/(2*np.pi),color="black")
+ax.axvline(params[-2]/(2*np.pi),color="black")
+ax.axvline(-params[-2]/(2*np.pi),color="black")
 ax.set_ylabel("|x(f)|^2",size=20)
 #ax.yaxis.set_label_position("right")
 ax.yaxis.tick_right()
@@ -157,23 +164,29 @@ if only_traj != 1:
     ##### COST LANDSCAPE ###
     ax = fig.add_subplot(gs[2:4, 0:2])
     ax.set_title("cost landscape", size=20)
+
+    colors = plt.get_cmap("rainbow")
+
     for k, cut in enumerate(cuts_final_time):
         if (k%10 == 1) or (k == len(cuts_final_time)-1):
-            ax.plot(omegas_landscape, loss[:,k], label=times_reference[cut], linewidth=5)
+            ax.plot(omegas_landscape, loss[:,k], label=times_reference[cut], linewidth=5,  color=colors(np.linspace(0,1,len(cuts_final_time)))[k])
         else:
-            ax.plot(omegas_landscape, loss[:,k], linewidth=5)
+            ax.plot(omegas_landscape, loss[:,k], linewidth=5 ,color=colors(np.linspace(0,1,len(cuts_final_time)))[k])
     ax.set_xlabel(r'$\tilde{\omega}$')
     ax.legend(prop={"size":25})
     # ax.set_yscale("log")
 
+
     ax = fig.add_subplot(gs[4:6, 0:2])
     ax.set_title("cost landscape")
+
     ax.plot(omegas_landscape, loss[:,-1], linewidth=5, label=" T_long = {}".format(times_reference[cut]))
     ax.axvline(omega_looking,linewidth=3, color="black")
     ax.set_xlabel(r'$\tilde{\omega}$')
     ax.legend(prop={"size":25})
 
     ### ROSSLER STROBOSCOP
+    # print("ploting RoSSLER STrOBosSCopiiic")
     ax = fig.add_subplot(gs[2:4, 2:6])
     ax.set_title("Errors Rossler integration - stroboscopic")
     ax.scatter(errs_rossler_strobo.keys(), np.abs(list(errs_rossler_strobo.values())), s=600)
@@ -182,17 +195,19 @@ if only_traj != 1:
     ax.set_ylabel(r'$\sqrt{MSE}$')
     ax.set_xlabel(r'$window \; size$')
     ax.set_xscale("log")
-    ax.set_yscale("log")
+    # ax.set_yscale("log")
+
+    if no_kalman != 1:
 
 
-    #### KALMAN UPDATE ###
-    ax = fig.add_subplot(gs[4:6, 2:6])
-    ax.scatter(errs.keys(), np.abs(list(errs.values())),s=500)
-    ax.plot(errs.keys(), np.abs(list(errs.values())), linewidth=5)
-    ax.set_yscale("log")
-    ax.set_xscale("log")
-    ax.set_ylabel(r'$\sqrt{MSE}$'+"KALMAN UPDATE vs. rossler",size=20)
-    ax.set_xlabel("multiplying factor in the integration step", size=20)
+        #### KALMAN UPDATE ###
+        ax = fig.add_subplot(gs[4:6, 2:6])
+        ax.scatter(errs.keys(), np.abs(list(errs.values())),s=500)
+        ax.plot(errs.keys(), np.abs(list(errs.values())), linewidth=5)
+        ax.set_yscale("log")
+        ax.set_xscale("log")
+        ax.set_ylabel(r'$\sqrt{MSE}$'+"KALMAN UPDATE vs. rossler",size=20)
+        ax.set_xlabel("multiplying factor in the integration step", size=20)
 
 
 
