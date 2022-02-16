@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 from steps import RK4_step, Ikpw, RosslerStep
 import ast
+from numba import jit
 
 
 def Euler(ff, G, y0, times, dt,**kwargs):
@@ -43,7 +44,7 @@ def RosslerSRI2(f, G, y0, times, dt):
         y[ind+1] = RosslerStep(t,y[ind], noises[ind,:], I[ind,:,:], dt, f,G, d, m)
     return y
 
-
+@jit(nopython=True)
 def Fs(s,t, coeffs=None, params=None, dt=None):
     """
     """
@@ -54,7 +55,9 @@ def Fs(s,t, coeffs=None, params=None, dt=None):
     ydot = np.dot(C,x)
 
     varx, varp,covxp = s[4:]
-    varx_dot, covxp_dot, varp_dot = ders(varx, varp, covxp)
+    #varx_dot, covxp_dot, varp_dot = ders(varx, varp, covxp)
+
+    varx_dot, covxp_dot, varp_dot = [2*covxp*omega - 2*eta*kappa*(varx**2) - gamma*varx + gamma*(n + 0.5), -2*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx, -2*(covxp**2)*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
 
 
@@ -72,8 +75,12 @@ def Fs_exp(s,t, coeffs=None, params=None, dt=1.):
     varx_dot, covxp_dot, varp_dot = ders(varx, varp, covxp)
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
 
+@jit(nopython=True)
 def Gs(s,t, coeffs=None, params=None):
-    cov = s_to_cov(s)
+    #cov = s_to_cov(s)
+    varx, varp,covxy = s[4:]
+    cov = np.array([[varx, covxy], [covxy, varp]])
+
     XiCov = np.dot(cov, C.T) + Lambda.T
     wieners = np.zeros((s.shape[0], s.shape[0]))
     wieners[:2,:2]  = XiCov
@@ -103,7 +110,12 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
     p0 = 0.
     yx0 = 0.
     yp0 = 0.
+
+    ### ASPELMAYER
     varx0, varp0, covxy0 = 1.3 ,1.3 ,-1e-4#1.36861098e+00, 1.36861102e+00, -1.09428240e-04
+
+    varx0, varp0, covxy0 = .3 ,2.4 ,1e-3#1.36861098e+00, 1.36861102e+00, -1.09428240e-04
+
     # varx0 = 0.16634014
     # varp0 = 14.423183
     # covxy0 = 0.7283633

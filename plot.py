@@ -42,8 +42,10 @@ states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, metho
 times_reference = times
 
 ### COMPUTE EXPECTRAL POWER
-negs = 0
+negs = -np.inf
 Period = 2*np.pi/params[-2]
+
+fomega = omega/(2*np.pi)
 
 fourier_signal = np.fft.fft(signals[:,0])
 freqs_signal = np.fft.fftfreq(n = len(fourier_signal), d= Period/ppp)
@@ -136,7 +138,7 @@ ax.plot(freqs_signal,spectra_signal)
 ax.set_ylabel("|dy(f)|^2")
 ax.set_xlabel("f")
 #ax.axvline(params[-2]/(2*np.pi),color="black")
-ax.set_xscale("log")
+ax.set_xlim([-10*fomega,10*fomega])
 ax.set_yscale("log")
 
 ax = fig.add_subplot(gs[1,4:6])
@@ -145,8 +147,9 @@ ax.plot(freqs_state,spectra_state)
 ax.set_ylabel("|x(f)|^2",size=20)
 #ax.yaxis.set_label_position("right")
 ax.yaxis.tick_right()
+ax.set_xlim([-10*fomega,10*fomega])
 ax.set_xlabel("f",size=20)
-ax.set_xscale("log")
+
 ax.set_yscale("log")
 
 if only_traj != 1:

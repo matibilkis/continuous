@@ -10,8 +10,8 @@ windows = np.concatenate([(10**k)*np.arange(2,3) for k in range(1)])
 windows = []
 save_windows(windows)
 method = "rossler"
-ppp = 5000
-periods = 100
+ppp = 1000
+periods = 10
 rppp = 1
 rppp_reference = 1
 

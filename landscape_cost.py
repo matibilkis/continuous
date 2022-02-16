@@ -40,10 +40,9 @@ states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, metho
 
 ## compute matrix
 C_rank = np.linalg.matrix_rank(C)
-xi = lambda cov,Lambda: np.dot(cov, C.T) + Lambda.T
 
 def evolve_simu_state(x,cov, dy, simu_A, internal_step):
-    XiCov = xi(cov, Lambda)
+    XiCov = np.dot(cov, C.T) + Lambda.T
     dx = np.dot(simu_A-np.dot(XiCov,C),x)*internal_step  + np.dot(XiCov,dy)
     dcov = (np.dot(simu_A,cov) + np.dot(cov, simu_A.T) + D - np.dot(XiCov, XiCov.T))*internal_step
     return [x + dx, cov + dcov]
@@ -58,6 +57,7 @@ dt = (Period/ppp)*rppp_reference ### this is because you might increase the dt a
 cuts_final_time = np.unique(np.concatenate([(10**k)*np.arange(1,11,1) for k in range(1,5)]))
 cuts_final_time = cuts_final_time[:(np.argmin(np.abs(cuts_final_time - len(times)))+1)] -1 #the -1 is for pyhton oindexing
 loss = np.zeros((len(omegas), len(cuts_final_time)))
+
 
 for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
     simu_A = np.array([[-.5*gamma, simu_omega], [-simu_omega, -0.5*gamma]])
@@ -79,5 +79,8 @@ np.save(path_landscape+"losses",loss)
 np.save(path_landscape+"omegas",omegas)
 np.save(path_landscape+"cuts",cuts_final_time)
 
-with open(path_landscape+"simu_states.pickle","wb") as f:
-    pickle.dump(simu_states,f, protocol=pickle.HIGHEST_PROTOCOL)
+os.makedirs(path_landscape+"simu_states/",exist_ok=True)
+for k, v in simu_states.items():
+    np.save(path_landscape+"simu_states/{}".format(k), list(v))
+#with open(path_landscape+"simu_states.pickle","wb") as f:#
+#    pickle.dump(simu_states,f, protocol=pickle.HIGHEST_PROTOCOL)

@@ -1,4 +1,6 @@
 import numpy as np
+from numba import jit
+
 
 def RK4_step(x,t,dt, fv,gv, parameters):
     ###https://people.math.sc.edu/Burkardt/cpp_src/stochastic_rk/stochastic_rk.cpp
@@ -84,6 +86,7 @@ def Ikpw(dW, h, n=5):
     dW = dW.reshape((N, -1)) # change back to shape (N, m)
     return (A, I)
 
+@jit(nopython=True)
 def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m):
     fnh = f(Yn, t)*dt # shape (d,)
     Gn = G(Yn, t)

@@ -13,23 +13,26 @@ def get_def_path():
 
     return defpath
 
-def give_def_params():
-    ######  https://arxiv.org/pdf/2005.03429.pdf
-
-    # omega = (2*np.pi)*(1.14)*1e6
-    # n = 14
-    # gamma = 19*2*np.pi#(4*np.pi*265/29)*1e-6
-    # kappa = np.pi*0.36*1e3#4*np.pi*0.36*1e-3
-    # eta = 0.74
-
+def give_def_params(mode="aspel"):
     ### ASPELMAYER  p.16 (correctons w/giulio)
-    n = 20
-    g = 6*(10**5)
-    k_aspel = 2*np.pi*(6.6)*10**5
-    [eta, gamma, kappa, omega, n] = [1,  2*np.pi*1e3,  2*(g**2)*n/k_aspel, 1*1e4, n]
+    if mode == "aspel":
+        n = 20
+        g = 6*(10**5)
+        k_aspel = 2*np.pi*(6.6)*10**5
+        [eta, gamma, kappa, omega, n] = [1,  2*np.pi*1e3,  2*(g**2)*n/k_aspel, 1*1e4, n]
+    elif mode=="heu":
+    ### heuristic...
+        [eta, gamma, kappa, omega, n] = [1, 10, 10**4, 2*np.pi, 20]
+        return [eta, gamma, kappa, omega, n]
 
+    ######  https://arxiv.org/pdf/2005.03429.pdf
+    elif mode=="arxiv":
+        omega = (2*np.pi)*(1.14)*1e6
+        n = 14
+        gamma = 19*2*np.pi#(4*np.pi*265/29)*1e-6
+        kappa = np.pi*0.36*1e3#4*np.pi*0.36*1e-3
+        eta = 0.74
     return [eta, gamma, kappa, omega, n]
-
 
 def check_params(params):
     if params == "":
