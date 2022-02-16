@@ -16,7 +16,7 @@ rppp = 1
 rppp_reference = 1
 
 only_traj=0
-only_plot = 0
+only_plot = 1
 #integrate time trace with different steps
 if only_plot != 1:
     for rppp in [rppp] + list(windows):

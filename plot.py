@@ -156,17 +156,17 @@ if only_traj != 1:
     ax.set_title("cost landscape", size=20)
     for k, cut in enumerate(cuts_final_time):
         if (k%10 == 1) or (k == len(cuts_final_time)-1):
-            ax.plot(omegas_landscape, loss[:,k], label=times_reference[cut], linewidth=5)
+            ax.plot(omegas_landscape, loss[:,k],  '.-', label=times_reference[cut],linewidth=5)
         else:
-            ax.plot(omegas_landscape, loss[:,k], linewidth=5)
+            ax.plot(omegas_landscape, loss[:,k], '.-', linewidth=5)
     ax.set_xlabel(r'$\tilde{\omega}$')
     ax.legend(prop={"size":25})
     # ax.set_yscale("log")
 
     ax = fig.add_subplot(gs[4:6, 0:2])
     ax.set_title("cost landscape")
-    ax.plot(omegas_landscape, loss[:,-1], linewidth=5, label=" T_long = {}".format(times_reference[cut]))
-    ax.axvline(omega_looking,linewidth=3, color="black")
+    ax.plot(omegas_landscape, loss[:,len(cuts_final_time)-1],'.-', color="red",linewidth=5, label=" T_long = {}".format(times_reference[cuts_final_time[-1]]))
+    # ax.axvline(omega_looking,linewidth=3, color="black")
     ax.set_xlabel(r'$\tilde{\omega}$')
     ax.legend(prop={"size":25})
 
@@ -178,16 +178,16 @@ if only_traj != 1:
 
     ax.set_ylabel(r'$\sqrt{MSE}$')
     ax.set_xlabel(r'$window \; size$')
-    ax.set_xscale("log")
-    ax.set_yscale("log")
+    # ax.set_xscale("log")
+    # ax.set_yscale("log")
 
 
     #### KALMAN UPDATE ###
     ax = fig.add_subplot(gs[4:6, 2:6])
     ax.scatter(errs.keys(), np.abs(list(errs.values())),s=500)
     ax.plot(errs.keys(), np.abs(list(errs.values())), linewidth=5)
-    ax.set_yscale("log")
-    ax.set_xscale("log")
+    # ax.set_yscale("log")
+    # ax.set_xscale("log")
     ax.set_ylabel(r'$\sqrt{MSE}$'+"KALMAN UPDATE vs. rossler",size=20)
     ax.set_xlabel("multiplying factor in the integration step", size=20)
 
