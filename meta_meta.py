@@ -11,7 +11,7 @@ windows = []
 save_windows(windows)
 method = "rossler"
 ppp = 1000
-periods = 10000
+periods = 5000
 rppp = 1
 rppp_reference = 1
 
@@ -24,9 +24,9 @@ no_kalman = 1
 
 
 if only_plot != 1:
-    for rppp in [rppp] + list(windows):
-        print("INTEGRATING TIME-TRACE, stroboscopic factor  x{}".format(rppp))
-        os.system("python3 integrate.py --ppp {} --periods {} --rppp {} --method {} --params {}".format(ppp, periods, rppp, method,  params_to_string(params)))
+    # for rppp in [rppp] + list(windows):
+    #     print("INTEGRATING TIME-TRACE, stroboscopic factor  x{}".format(rppp))
+    #     os.system("python3 integrate.py --ppp {} --periods {} --rppp {} --method {} --params {}".format(ppp, periods, rppp, method,  params_to_string(params)))
 
     if only_traj != 1:
         # how does the landscape looks for the big time trace?
