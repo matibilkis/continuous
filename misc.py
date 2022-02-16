@@ -37,7 +37,8 @@ def give_def_params(mode="aspel"):
 def check_params(params):
     if params == "":
         params = give_def_params()
-        exp_path = ""
+        exp_path = '{}/'.format(params)
+        #exp_path = ""
     else:
         if isinstance(params, str):
             params = ast.literal_eval(params)

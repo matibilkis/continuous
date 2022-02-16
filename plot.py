@@ -71,14 +71,13 @@ if only_traj != 1:
     loss = np.load(path_landscape+"losses.npy")
     omegas_landscape = np.load(path_landscape+"omegas.npy")
     cuts_final_time = np.load(path_landscape+"cuts.npy")
-    omega_looking = omega
 
     ### LOAD "STROBOSCOPIC REAL" trajectories (integrated with longer dt's, same noise)
     rossler_dt = {}
     windows = get_windows()
     rppps = [1] + list(windows)
     for rppp in rppps:
-        rossler_dt[rppp], covs, signals, params, times = load_data(periods=periods, ppp=ppp, method="rossler", rppp = rppp, exp_path=exp_path)
+        rossler_dt[rppp], covs_, signals_, params_, times_ = load_data(periods=periods, ppp=ppp, method="rossler", rppp = rppp, exp_path=exp_path)
 
     errs_rossler_strobo = {}
     for rppp in rossler_dt.keys():
@@ -87,19 +86,16 @@ if only_traj != 1:
     ########## load strobosocpic euler
 
     if no_kalman != 1:
-        states_eu_opt = {}
+        diff_kalman_rossler = {}
         for indi, eu_rppp in enumerate(([1] + list(windows))):
             path_kalman_dt = get_path_config(periods = periods, ppp= ppp, rppp=rppp_reference, method=method, itraj=itraj, exp_path=exp_path)+"stroboscopic_euler_rppp{}/".format(eu_rppp)
-            if indi==0:
-                omegas = np.load(path_kalman_dt+"omegas.npy")
+
             try:
-                states_eu_opt[eu_rppp] = np.load(path_kalman_dt+"states/states{}.npy".format(np.argmin(np.abs(np.array(omegas)-omega_looking))))
+                diff_kalman_rossler[eu_rppp] = np.load(path_kalman_dt+"sqrt_mse.npy")
+                #states_eu_opt[eu_rppp] = np.load(path_kalman_dt+"states/states{}.npy".format(np.argmin(np.abs(np.array(omegas)-omega_looking))))
             except Exception:
-                print("loading error in kalman dt..{}".format([indi, eu_rppp, "line 93", path_kalman_dt]))
+                print("Error (probably integration, euler divergies... {}, {}, {}".format(indi, eu_rppp, path_kalman_dt))
                 pass
-        errs = {}
-        for rdt in states_eu_opt.keys():
-            errs[rdt] = np.sqrt(np.mean(np.square(states[::rdt] - states_eu_opt[rdt])))
 
 #### PLOTING
 
@@ -176,12 +172,11 @@ if only_traj != 1:
     ax.legend(prop={"size":25})
     # ax.set_yscale("log")
 
-
     ax = fig.add_subplot(gs[4:6, 0:2])
     ax.set_title("cost landscape")
 
     ax.plot(omegas_landscape, loss[:,-1], linewidth=5, label=" T_long = {}".format(times_reference[cut]))
-    ax.axvline(omega_looking,linewidth=3, color="black")
+    ax.axvline(omega,linewidth=3, color="black")
     ax.set_xlabel(r'$\tilde{\omega}$')
     ax.legend(prop={"size":25})
 
@@ -195,15 +190,14 @@ if only_traj != 1:
     ax.set_ylabel(r'$\sqrt{MSE}$')
     ax.set_xlabel(r'$window \; size$')
     ax.set_xscale("log")
-    # ax.set_yscale("log")
+    # ax.set_yscale("log") ##can be zero here...
 
     if no_kalman != 1:
 
-
         #### KALMAN UPDATE ###
         ax = fig.add_subplot(gs[4:6, 2:6])
-        ax.scatter(errs.keys(), np.abs(list(errs.values())),s=500)
-        ax.plot(errs.keys(), np.abs(list(errs.values())), linewidth=5)
+        ax.scatter(diff_kalman_rossler.keys(), np.abs(list(diff_kalman_rossler.values())),s=500)
+        ax.plot(diff_kalman_rossler.keys(), np.abs(list(diff_kalman_rossler.values())), linewidth=5)
         ax.set_yscale("log")
         ax.set_xscale("log")
         ax.set_ylabel(r'$\sqrt{MSE}$'+"KALMAN UPDATE vs. rossler",size=20)

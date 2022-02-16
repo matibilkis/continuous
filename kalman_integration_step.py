@@ -7,6 +7,7 @@ import argparse
 import os
 import pickle
 import ast
+from numba import jit
 
 
 parser = argparse.ArgumentParser(add_help=False)
@@ -33,17 +34,24 @@ params, exp_path = check_params(params)
 states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, exp_path = exp_path)
 [eta, gamma, kappa, omega, n] = params
 [C, A, D , Lambda] = build_matrix_from_params(params)
+[C, A, D , Lambda] = [C.astype(np.float32), A.astype(np.float32), D.astype(np.float32) , Lambda.astype(np.float32)]
 
-xi = lambda cov,Lambda: np.dot(cov, C.T) + Lambda.T
+@jit(nopython=True)
+def integrate_euler( signals, simu_A, simu_states, simu_covs):
+    for ind,dy in enumerate(signals):
 
-def evolve_simu_state(x,cov, dy, simu_A, internal_step):
-    XiCov = xi(cov, Lambda)
-    dx = np.dot(simu_A-np.dot(XiCov,C),x)*internal_step  + np.dot(XiCov,dy)
-    dcov = (np.dot(simu_A,cov) + np.dot(cov, ct(simu_A)) + D - np.dot(XiCov, XiCov.T))*internal_step
-    return [x + dx, cov + dcov]
+        x = simu_states[-1].astype(np.float32)
+        cov = simu_covs[-1].astype(np.float32)
 
-simu_states, simu_covs = {}, {}
-omegas = [omega]#list(set([omega] + list(np.linspace(0, 2*omega, 10))))
+        XiCov = np.dot(cov, C.T) + Lambda.T
+        dx = np.dot(simu_A-np.dot(XiCov,C),x)*dt  + np.dot(XiCov,dy)
+        dcov = (np.dot(simu_A,cov) + np.dot(cov, simu_A.T) + D - np.dot(XiCov, XiCov.T))*dt
+
+        simu_states.append( (x + dx).astype(np.float32))
+        simu_covs.append( (cov + dcov).astype(np.float32))
+
+    return simu_states, simu_covs
+
 
 remainder = (len(times)%euler_rppp)
 if remainder > 0:
@@ -56,26 +64,27 @@ else:
 signals_jump = np.stack([np.sum(signals_jump[k:(k+euler_rppp)], axis=0)  for k in range(int(len(signals_jump)/euler_rppp)) ])
 
 ### compute the right dt (i.e. the one used for integration, and then multiply ir by the corresponding factor)
+global dt
 Period = 2*np.pi/omega
 dt = (Period/ppp)*euler_rppp
 
-for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
-    simu_A = np.array([[-.5*gamma, simu_omega], [-simu_omega, -0.5*gamma]])
-    simu_states[simu_omega] = [states[0]]
-    simu_covs[simu_omega] = [covs[0]]
 
-    for ind,dy in enumerate(tqdm(signals_jump)):
-        simu = evolve_simu_state(simu_states[simu_omega][-1], simu_covs[simu_omega][-1], dy, simu_A,  dt)
-        simu_states[simu_omega].append(simu[0])
-        simu_covs[simu_omega].append(simu[1])
+simu_omega = omega
+simu_A = np.array([[-.5*gamma, simu_omega], [-simu_omega, -0.5*gamma]]).astype(np.float32)
+simu_states = [states[0].astype(np.float32)]
+simu_covs = [covs[0].astype(np.float32)]
+
+print("Euler integrating the signals!")
+simu_states, simu_covs = integrate_euler(signals, simu_A, simu_states, simu_covs)
+
 
 path_kalman_dt = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)+"stroboscopic_euler_rppp{}/".format(euler_rppp)
 
 os.makedirs(path_kalman_dt,exist_ok=True)
-os.makedirs(path_kalman_dt+"states/",exist_ok=True)
 
-for ind_simu_omega, simu_omega in enumerate(omegas):
-    np.save(path_kalman_dt+"states/states{}".format(ind_simu_omega),np.array(simu_states[simu_omega]))
-    np.save(path_kalman_dt+"states/covs{}".format(ind_simu_omega),np.array(simu_covs[simu_omega]))
+sqrt_mse = np.sqrt(np.mean( ( simu_states - states[::euler_rppp])**2 ))
 
-np.save(path_kalman_dt+"omegas",omegas)
+np.save(path_kalman_dt+"sqrt_mse",[sqrt_mse])
+# os.makedirs(path_kalman_dt+"states/",exist_ok=True)
+# np.save(path_kalman_dt+"states/states",np.array(simu_states))
+# np.save(path_kalman_dt+"states/covs",np.array(simu_covs))
