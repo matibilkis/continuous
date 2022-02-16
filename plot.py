@@ -29,16 +29,13 @@ only_traj = args.only_traj
 no_kalman = args.no_kalman
 
 rppp_reference = 1
-
 params, exp_path = check_params(params)
 
 
 export_dir = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path  )+"figures/"
 os.makedirs(export_dir,exist_ok=True)
 
-
  #### LOAD ""REAL"" trajectory
-
 states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, exp_path=exp_path , rppp = rppp_reference)
 [eta, gamma, kappa, omega, n] = params
 times_reference = times
@@ -77,8 +74,9 @@ if only_traj != 1:
     windows = get_windows()
     rppps = [1] + list(windows)
     for rppp in rppps:
-        rossler_dt[rppp], covs_, signals_, params_, times_ = load_data(periods=periods, ppp=ppp, method="rossler", rppp = rppp, exp_path=exp_path)
-
+        rossler_dt[rppp], _, _, _, _ = load_data(periods=periods, ppp=ppp, method="rossler", rppp = rppp, exp_path=exp_path)
+        print(rppp)
+        print(rossler_dt[rppp])
     errs_rossler_strobo = {}
     for rppp in rossler_dt.keys():
         errs_rossler_strobo[rppp] = np.sqrt(np.mean(np.square(states[::rppp] - rossler_dt[rppp])))
@@ -184,6 +182,7 @@ if only_traj != 1:
     # print("ploting RoSSLER STrOBosSCopiiic")
     ax = fig.add_subplot(gs[2:4, 2:6])
     ax.set_title("Errors Rossler integration - stroboscopic")
+    print(errs_rossler_strobo)
     ax.scatter(errs_rossler_strobo.keys(), np.abs(list(errs_rossler_strobo.values())), s=600)
     ax.plot(errs_rossler_strobo.keys(), np.abs(list(errs_rossler_strobo.values())), linewidth=5)
 
@@ -198,7 +197,7 @@ if only_traj != 1:
         ax = fig.add_subplot(gs[4:6, 2:6])
         ax.scatter(diff_kalman_rossler.keys(), np.abs(list(diff_kalman_rossler.values())),s=500)
         ax.plot(diff_kalman_rossler.keys(), np.abs(list(diff_kalman_rossler.values())), linewidth=5)
-        ax.set_yscale("log")
+        # ax.set_yscale("log")
         ax.set_xscale("log")
         ax.set_ylabel(r'$\sqrt{MSE}$'+"KALMAN UPDATE vs. rossler",size=20)
         ax.set_xlabel("multiplying factor in the integration step", size=20)

@@ -29,6 +29,8 @@ class Rcell(tf.keras.layers.Layer):
         self.coeffs_A = self.add_weight(shape=(self.w, self.w),
                                       initializer='uniform',
                                       name='kernel')
+        omega = self.omega
+        self.coeffs_A[0].assign(  np.array([np.random.uniform(omega - omega/10, omega + omega/10) ]).astype(np.float32))
         self.built = True
 
     def call(self, inputs, states):

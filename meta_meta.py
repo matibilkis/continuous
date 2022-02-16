@@ -6,24 +6,24 @@ from misc import *
 
 params = give_def_params() #params = [eta, gamma, kappa, omega, n]
 
-windows = np.concatenate([(10**k)*np.arange(2,3) for k in range(1)])
+windows = np.concatenate([(10**k)*np.arange(2,4) for k in range(1)])
 # windows = []
 save_windows(windows)
 method = "rossler"
 ppp = 1000
-periods = 10000
+periods = 1000
 rppp_reference = 1
 
 
 only_plot = 0
-rppp=1
+
 only_traj=0
 no_kalman = 0
 #integrate time trace with different steps
 
 
 if only_plot != 1:
-    for rppp in [rppp] + list(windows):
+    for rppp in [1] + list(windows):
         print("INTEGRATING TIME-TRACE, stroboscopic factor  x{}".format(rppp))
         os.system("python3 integrate.py --ppp {} --periods {} --rppp {} --method {} --params {}".format(ppp, periods, rppp, method,  params_to_string(params)))
 

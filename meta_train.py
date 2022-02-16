@@ -6,8 +6,8 @@ from misc import *
 
 params = give_def_params() #params = [eta, gamma, kappa, omega, n]
 method = "rossler"
-ppp = 10000
-periods = 100
+ppp = 1000
+periods = 1000
 rppp_reference = 1
 
 os.system("python3 train.py --ppp {} --periods {} --rppp {} --params {}".format(ppp,periods,rppp_reference, params_to_string(params)))
