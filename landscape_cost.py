@@ -55,6 +55,7 @@ cuts_final_time = np.unique(np.concatenate([(10**k)*np.arange(1,11,1) for k in r
 cuts_final_time = cuts_final_time[:(np.argmin(np.abs(cuts_final_time - len(times)))+1)] -1 #the -1 is for pyhton oindexing
 
 loss = np.zeros((len(omegas), len(cuts_final_time)))
+loss1 = np.zeros((len(omegas), len(cuts_final_time)))
 
 
 
@@ -74,38 +75,27 @@ def integrate_with_omega(simu_omega,ind_simu_omega, signals, simu_A, simu_states
 
     return simu_states_omega, simu_covs_omega
 
+path_landscape= get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)+"landscape/"
+os.makedirs(path_landscape+"simu_states/",exist_ok=True)
+
 
 for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
     simu_A = np.array([[-.5*gamma, simu_omega], [-simu_omega, -0.5*gamma]]).astype(np.float32)
     simu_states = [states[0].astype(np.float32)]
     simu_covs = [covs[0].astype(np.float32)]
-
     simu_states, simu_covs = integrate_with_omega(simu_omega, ind_simu_omega, signals, simu_A, simu_states, simu_covs)
 
+    np.save(path_landscape+"simu_states/{}".format(simu_omega), simu_states)
+
     for indcut, cut in enumerate(cuts_final_time):
+        #loss[ind_simu_omega, indcut] = np.sum((np.square(signals[:cut] - np.einsum('ij,bj->bi',C,simu_states[:-1][:cut])*dt) - np.square(signals[:cut]))/(2*dt))
         loss[ind_simu_omega, indcut] = np.sum(np.square(signals[:cut] - np.einsum('ij,bj->bi',C,simu_states[:-1][:cut])*dt))
         loss[ind_simu_omega, indcut] =  (loss[ind_simu_omega, indcut] - times[cut])/(2*C[0,0]*dt**(3/2))  ### assuming we have homodyne, otherwise we should take inverse of C...!
 
 
 
-# for ind_simu_omega, simu_omega in tqdm(enumerate(omegas)):
-#     simu_A = np.array([[-.5*gamma, simu_omega], [-simu_omega, -0.5*gamma]]).astype(np.float32)
-#     simu_states[simu_omega] = [states[0].astype(np.float32)]
-#     simu_covs[simu_omega] = [covs[0].astype(np.float32)]
-#
-#     simu_states[simu_omega], simu_covs[simu_omega] = integrate_with_omega(simu_omega, ind_simu_omega, signals, simu_A, simu_states[simu_omega], simu_covs[simu_omega])
-#
-#     for indcut, cut in enumerate(cuts_final_time):
-#         loss[ind_simu_omega, indcut] = np.sum(np.square(signals[:cut] - np.einsum('ij,bj->bi',C,simu_states[simu_omega][:-1][:cut])*dt))
-#         loss[ind_simu_omega, indcut] =  (loss[ind_simu_omega, indcut] - times[cut])/(2*C[0,0]*dt**(3/2))  ### assuming we have homodyne, otherwise we should take inverse of C...!
-
-path_landscape= get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)+"landscape/"
-
 os.makedirs(path_landscape,exist_ok=True)
 np.save(path_landscape+"losses",loss)
+#np.save(path_landscape+"losses1",loss)
 np.save(path_landscape+"omegas",omegas)
 np.save(path_landscape+"cuts",cuts_final_time)
-
-# os.makedirs(path_landscape+"simu_states/",exist_ok=True)
-# for k, v in simu_states.items():
-#     np.save(path_landscape+"simu_states/{}".format(k), list(v))

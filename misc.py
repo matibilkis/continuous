@@ -13,13 +13,20 @@ def get_def_path():
 
     return defpath
 
-def give_def_params(mode="aspel"):
+def give_def_params(mode="test"):
     ### ASPELMAYER  p.16 (correctons w/giulio)
+#### good --->         k_aspel = 2*np.pi*(6.6)*10**5
+        #[eta, gamma, kappa, omega, n] = [1,  2*np.pi*1e2,  2*(g**2)*n/k_aspel, 1*1e4, n]
+
     if mode == "aspel":
-        n = 20
+        n = 1
         g = 6*(10**5)
         k_aspel = 2*np.pi*(6.6)*10**5
         [eta, gamma, kappa, omega, n] = [1,  2*np.pi*1e3,  2*(g**2)*n/k_aspel, 1*1e4, n]
+
+    elif mode == "test":
+        n = 1
+        [eta, gamma, kappa, omega, n] = [1,  10**2 , 10**6, 1*1e4, n]
     elif mode=="heu":
     ### heuristic...
         [eta, gamma, kappa, omega, n] = [1, 10, 10**4, 2*np.pi, 20]

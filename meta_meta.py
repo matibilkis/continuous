@@ -11,7 +11,7 @@ windows = []
 save_windows(windows)
 method = "rossler"
 ppp = 1000
-periods = 50000
+periods = 10
 rppp_reference = 1
 
 
