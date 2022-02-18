@@ -6,12 +6,12 @@ from misc import *
 
 params = give_def_params() #params = [eta, gamma, kappa, omega, n]
 
-windows = np.concatenate([(10**k)*np.arange(2,4) for k in range(1)])
-# windows = []
+windows = np.concatenate([(10**k)*np.arange(2,3) for k in range(1)])
+windows = []
 save_windows(windows)
 method = "rossler"
 ppp = 1000
-periods = 1000
+periods = 50000
 rppp_reference = 1
 
 
