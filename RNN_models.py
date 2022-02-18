@@ -30,7 +30,7 @@ class Rcell(tf.keras.layers.Layer):
                                       initializer='uniform',
                                       name='kernel')
         omega = self.omega
-        self.coeffs_A[0].assign(  np.array([np.random.uniform(omega - omega/10, omega + omega/10) ]).astype(np.float32))
+        self.coeffs_A[0].assign( np.array([np.random.uniform(omega - omega/10, omega + omega/10) ]).astype(np.float32))
         self.built = True
 
     def call(self, inputs, states):
@@ -111,6 +111,7 @@ class GRNNmodel(tf.keras.Model):
     @tf.function
     def train_step(self, data):
         inputs, dys = data
+
         with tf.GradientTape() as tape:
             tape.watch(self.trainable_variables)
             preds = self(inputs)
@@ -121,6 +122,8 @@ class GRNNmodel(tf.keras.Model):
         self.total_loss.update_state(loss)
         self.coeffsA.update_state(self.trainable_variables[0])
         self.gradient_history.update_state(grads)
+
+
         return {k.name:k.result() for k in self.metrics}
 
 

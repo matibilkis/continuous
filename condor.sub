@@ -1,0 +1,11 @@
+executable=subash.sh
+
+output = ../jobs/outs/$(Item).out
+error = ../jobs/errs/$(Item).err
+log = ../jobs/logs/$(Item).log
+request_cpus = 1
+request_memory = 4 GB
++flavour="short"
+
+args=$(Item)
+queue from seq 1 1 8|

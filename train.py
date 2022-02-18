@@ -18,6 +18,7 @@ parser.add_argument("--method", type=str, default="rossler")
 parser.add_argument("--params", type=str, default="") #[eta, gamma, kappa, omega, n]
 parser.add_argument("--trainid", type=int, default=0)
 parser.add_argument("--rppp", type=int, default=1)
+parser.add_argument("--epochs", type=int, default=1000)
 
 args = parser.parse_args()
 
@@ -29,6 +30,7 @@ rppp_reference = rppp = args.rppp
 method = args.method
 params = args.params
 train_id = args.trainid
+epochs = args.epochs
 
 
 params, exp_path = check_params(params)
@@ -49,7 +51,7 @@ tf.random.set_seed(train_id)
 np.random.seed(train_id)
 
 
-learning_rate = 0.1
+learning_rate = float(omega/50)
 optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
 tfsignals = tf.convert_to_tensor(signals)[tf.newaxis]
 
@@ -68,9 +70,9 @@ with open(rmod.train_path+"training_details.txt", 'w') as f:
 f.close()
 
 history = rmod.fit(x=tfsignals, y=tfsignals,
-                     epochs=2000, callbacks = [CustomCallback(),
+                     epochs=epochs, callbacks = [CustomCallback(),
                                                   tf.keras.callbacks.EarlyStopping(monitor='total_loss',
-                                                                                   min_delta=0, patience=500,
+                                                                                   min_delta=0, patience=200,
                                                                                    verbose=0,
                                                                                    mode='min')])
 with open(rmod.train_path+"training_details.txt", 'w') as f:
