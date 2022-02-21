@@ -1,182 +1,212 @@
-import os
 import numpy as np
-from misc import ct
+import matplotlib.pyplot as plt
 from tqdm import tqdm
-from scipy.integrate import solve_ivp
-
-def vector_to_matrix(v):
-    return np.array([[v[0], v[1]],[v[2], v[3]]])
-def matrix_to_vector(v):
-    return np.array([v[0,0], v[0,1], v[1,0], v[1,1]])
-
-
-def euler(x,t,dt,fv,gv,parameters):
-    return x + (dt*fv(t,x,parameters=parameters)) + np.sqrt(dt)*gv(t,x,parameters=parameters)
-
-def RK4(x,t,dt, fv,gv, parameters):
-    ###https://people.math.sc.edu/Burkardt/cpp_src/stochastic_rk/stochastic_rk.cpp
-    #Runge-Kutta Algorithm for the Numerical Integration
-    #of Stochastic Differential Equations
-    ##
-    a21 =   0.66667754298442
-    a31 =   0.63493935027993
-    a32 =   0.00342761715422#D+00
-    a41 = - 2.32428921184321#D+00
-    a42 =   2.69723745129487#D+00
-    a43 =   0.29093673271592#D+00
-    a51 =   0.25001351164789#D+00
-    a52 =   0.67428574806272#D+00
-    a53 = - 0.00831795169360#D+00
-    a54 =   0.08401868181222#D+00
-
-    q1 = 3.99956364361748#D+00
-    q2 = 1.64524970733585#D+00
-    q3 = 1.59330355118722#D+00
-    q4 = 0.26330006501868#D+00
-
-    t1 = t
-    x1 = x
-    k1 = dt*fv( t1, x1, parameters ) + np.sqrt(dt*q1)*gv( t1, x1, parameters)
-
-    t2 = t1 + (a21 * dt)
-    x2 = x1 + (a21 * k1)
-    k2 = dt * fv( t2, x2, parameters) + np.sqrt(dt*q2)*gv( t2, x2, parameters)
-
-    t3 = t1 + (a31 * dt)  + (a32 * dt)
-    x3 = x1 + (a31 * k1) + (a32 * k2)
-    k3 = dt * fv( t3 , x3, parameters) + np.sqrt(dt*q3)*gv( t3, x3, parameters)
-
-    t4 = t1 + (a41 * dt)  + (a42 * dt)  + (a43 * dt)
-    x4 = x1 + (a41 * k1) + (a42 * k2) + (a43 * k3)
-    k4 = dt * fv( t4, x4, parameters) + np.sqrt(dt*q4)* gv( t4, x4, parameters)
-
-    xstar = x1 + (a51 * k1) + (a52 * k2) + (a53 * k3) + (a54 * k4)
-    return xstar
+from misc import *#get_def_path, ct, s_to_cov, convert_solution, get_path_config
+import argparse
+from datetime import datetime
+import os
+from steps import RK4_step, Ikpw, RosslerStep
+import ast
+from numba import jit
 
 
+def Euler(ff, G, y0, times, dt,**kwargs):
+    exp = kwargs.get("exp",False)
+    N = len(times)+1
+    y = np.zeros((N, len(y0)))
 
-def generate_traj_RK4(ppp=500, periods = 40, itraj=0, path = ".", seed=0, **kwargs):
+    if exp is True:
+        dtexp = 1.
+    else:
+        dtexp = dt
+
+    y[0] = y0
+    for ind, t in enumerate(tqdm(times)):
+        y[ind+1] = y[ind] + ff(y[ind], t, dt=dt)*dtexp + np.dot(G(y[ind], t), noises[ind,:])
+    return y
+
+def RosslerSRI2(f, G, y0, times, dt):
+    """
+    dy = f(y,t) *dt + G(y,t) *dW
+    borrowed from sdeint - python
+    """
+    N = len(times)+1
+    d = len(y0)
+    m = len(y0)
+
+    _,I=Ikpw(noises,dt)
+
+    y = np.zeros((N, d))
+    y[0] = y0
+    Gn = np.zeros((d, m), dtype=y.dtype)
+
+    for ind, t in enumerate(tqdm(times)):
+        y[ind+1] = RosslerStep(t,y[ind], noises[ind,:], I[ind,:,:], dt, f,G, d, m)
+    return y
+
+@jit(nopython=True)
+def Fs(s,t, coeffs=None, params=None, dt=None):
+    """
+    """
+    x = s[0:2]
+    xdot = np.dot(A,x)
+
+    y = s[2:4]
+    ydot = np.dot(C,x)
+
+    varx, varp,covxp = s[4:]
+    #varx_dot, covxp_dot, varp_dot = ders(varx, varp, covxp)
+
+    varx_dot, covxp_dot, varp_dot = [2*covxp*omega - 2*eta*kappa*(varx**2) - gamma*varx + gamma*(n + 0.5), -2*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx, -2*(covxp**2)*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
+    return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
+
+
+def Fs_exp(s,t, coeffs=None, params=None, dt=1.):
+    """
+    dt demanded for exp
+    """
+    x = s[0:2]
+    ExpA = np.array([[np.cos(omega*dt), np.sin(omega*dt)], [-np.sin(omega*dt), np.cos(omega*dt)]])
+    xdot = np.dot(ExpA-np.eye(2), x)  #evolution update (according to what you measure)
+
+    y = s[2:4]
+    ydot = np.dot(C,x)
+    varx, varp,covxp = s[4:]
+    varx_dot, covxp_dot, varp_dot = ders(varx, varp, covxp)
+    return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot])
+
+@jit(nopython=True)
+def Gs(s,t, coeffs=None, params=None):
+    #cov = s_to_cov(s)
+    varx, varp,covxy = s[4:]
+    cov = np.array([[varx, covxy], [covxy, varp]])
+
+    XiCov = np.dot(cov, C.T) + Lambda.T
+    wieners = np.zeros((s.shape[0], s.shape[0]))
+    wieners[:2,:2]  = XiCov
+    wieners[2:4,2:4] = proj_C#np.eye(2)
+    return wieners
+
+
+def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
+
+    """
+    everything is in the get_def_path()
+
+    note that if you sweep params exp_path needs to specified
+    """
+    global A, C, D, Lambda, eta, gamma, omega, n, kappa, rppp, ders, noises, proj_C
 
     eta = kwargs.get("eta",1) #efficiency
-    gamma = kwargs.get("gamma",0.3) # damping (related both to D and to A)
-    Lambda = kwargs.get("Lambda",0.8) #rate of measurement
-    omega = kwargs.get("omega",2*np.pi) #rate of measurement
-    n = kwargs.get("n",10.0)
+    kappa = kwargs.get("kappa",1)
+    gamma = kwargs.get("gamma",0.3)
+    omega = kwargs.get("omega",2*np.pi)
+    n = kwargs.get("n",2.0)
 
-    if omega < 1e-12:
-        periods = periods
-    else.
-        periods = int(periods*2*np.pi/omega)
-    dt = 1/ppp
+    print("integrating with parameters: \n eta {} \nkappa {}\ngamma {} \nomega {}\nn {}\n".format(eta,kappa,gamma,omega,n))
+    rppp = kwargs.get("rppp",1)
 
-    times = np.arange(0,periods+ dt, dt)
+    x0 = 1.
+    p0 = 0.
+    yx0 = 0.
+    yp0 = 0.
 
-    
-    A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
-    #A = np.array([[0, omega], [-omega, 0]])
-    D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
-    C = np.diag([np.sqrt(4*eta*Lambda)]*2)
+    ### ASPELMAYER
+    varx0, varp0, covxy0 = 1.3 ,1.3 ,-1e-4#1.36861098e+00, 1.36861102e+00, -1.09428240e-04
 
-    cov_in = np.eye(2)
+    varx0, varp0, covxy0 = .3 ,2.4 ,1e-3#1.36861098e+00, 1.36861102e+00, -1.09428240e-04
 
-    xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
-    print("integrating ricatti eq... covariance...")
-    def dcovdt(t,cov):
-        cov= vector_to_matrix(cov)
-        XiCov = xi(cov)
-        ev_cov = np.dot(A,cov) + np.dot(cov, ct(A)) + D - np.dot(XiCov, ct(XiCov))
-        return matrix_to_vector(ev_cov)
+    # varx0 = 0.16634014
+    # varp0 = 14.423183
+    # covxy0 = 0.7283633
+# array([[ 1.36861098e+00, -1.09428240e-04],
+#        [-1.09428240e-04,  1.36861102e+00]])
 
-    integrate_cov = solve_ivp(dcovdt, y0=matrix_to_vector(cov_in), t_span=(0,times[-1]), t_eval=times, max_step = dt, atol=1, rtol=1)
-    covs = np.reshape(integrate_cov.y.T, (len(times),2,2))
+    s0 = np.array([x0, p0, yx0, yp0, varx0, varp0,covxy0])
 
-    np.random.seed(seed)
+    C = np.array([[np.sqrt(2*eta*kappa),0],[0,0]]) #homodyne
+    proj_C = C/np.sum(C)
+    A = np.array([[-gamma/2, omega],[-omega, -gamma/2]])
+    D = np.diag([(gamma*(n+0.5))]*2)
+    Lambda = np.zeros((2,2))
 
-    def f(t,x,parameters=None):
-        return np.dot(A, x)
+    ### obtained in scipy ipynb.. thorugh scipy
+    ders = lambda varx, varp, covxp: [2*covxp*omega - 2*eta*kappa*(varx**2) - gamma*varx + gamma*(n + 0.5), -2*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx, -2*(covxp**2)*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
 
-    xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
-    def g(t,x,parameters=None):
-        gg = np.dot(xi(covs[parameters]),[np.random.normal(), np.random.normal()])
-        return gg
+    Period = 2*np.pi/omega
 
-    states = np.zeros((len(times),2))
-    states[0] = np.array([0.,0.])
-    print("integrating states")
-    for ind, t in enumerate(tqdm(times[:-1])):
-        states[ind+1] = RK4(states[ind], t, dt, f, g, parameters=ind)
+    dt = Period/ppp
+    times = np.arange(0.,Period*periods,dt)
 
-    diffs = states[1:]-states[:-1]
-    invsXiCov = np.array([np.linalg.inv(xi(cov)) for cov in covs[:-1]])
-    CAx = np.einsum('ij,bj->bi',C-A,states[:-1])*dt
-    signals = np.einsum('bij,bj->bi',invsXiCov,CAx + diffs)
+    coeffs = [C, A, D , Lambda, dt, rppp]
+    params = [eta, gamma, kappa, omega, n]
 
-    coeffs = [C, A, D , dt]
-    params = [eta, gamma, Lambda, omega, n]
+    ### what we integrate
+    remainder = (len(times)%rppp)
+    if remainder > 0:
+        tspan = times[:-remainder] #this is so we can split evenly
+    else:
+        tspan = times
 
-    path = path + "{}/RK4/".format(itraj)
+    #### generate long trajectory of noises
+    np.random.seed(itraj)
+    dW = np.zeros((len(tspan), 7)) #I have ppp*periods points.
+    for ind,t in enumerate(tspan):
+        w0 = np.random.normal()*np.sqrt(dt)
+        w1 = np.random.normal()*np.sqrt(dt)
+        dW[ind,:] = np.array([w0, w1, w0, w1 , 0.,0.,0.])
+
+    integration_times = tspan[::rppp] #jump tspan with step rppp
+    noises = np.zeros((len(integration_times),7))
+    for sl in range(rppp):
+        noises+=dW[sl::rppp,:]
+    integration_step = rppp*dt
+
+    if method.lower()=="rossler":
+        print("integrating with rossler")
+        solution = RosslerSRI2(Fs, Gs, s0, integration_times, integration_step)
+    elif method.lower()=="euler":
+        print("integrating with euler")
+        solution = Euler(Fs, Gs, s0, integration_times, integration_step)
+    elif method.lower()=="expeuler": #this blows-up when the non-physical scenario...
+        print("integrating with Exp-euler")
+        solution = Euler(Fs_exp, Gs, s0, integration_times, integration_step, exp=True)
+    elif method.lower()=="rk4":
+        print("integrating with RK4 is deprecatred due to weak convergence.")
+    states, signals, covs = convert_solution(solution)
+
+    path = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)
+
     os.makedirs(path, exist_ok=True)
-    np.save(path+"states".format(itraj),np.array(states ))
-    np.save(path+"covs".format(itraj),np.array(covs ))
-    np.save(path+"signals".format(itraj),np.array(signals ))
-    np.save(path+"params".format(itraj),params)
-    return
+    np.save(path+"times",np.array(integration_times ))
+    np.save(path+"states",np.array(states ))
+    np.save(path+"covs",np.array(covs ))
+    np.save(path+"signals",np.array(signals ))
+    np.save(path+"params",params)
 
-def generate_traj_Euler(ppp=4000, periods = 5, itraj=0, path = ".", seed=0,**kwargs):
-    eta = kwargs.get("eta",1) #efficiency
-    gamma = kwargs.get("gamma",0.3) # damping (related both to D and to A)
-    Lambda = kwargs.get("Lambda",0.8) #rate of measurement
-    omega = kwargs.get("omega",2*np.pi) #rate of measurement
-    n = kwargs.get("n",10.0)
+    print("traj saved in", path)
+    return times, states, signals, covs
 
-    periods = int(periods*2*np.pi/omega)
-    dt = 1/ppp
+if __name__ == "__main__":
 
-    times = np.arange(0,periods+ dt, dt)
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--itraj", type=int, default=1)
+    parser.add_argument("--periods",type=int, default=50)
+    parser.add_argument("--ppp", type=int,default=500)
+    parser.add_argument("--method", type=str,default="rossler")
+    parser.add_argument("--rppp", type=int,default=1)
+    parser.add_argument("--params", type=str, default="") #[eta, gamma, kappa, omega, n]
+    args = parser.parse_args()
 
-    A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
-    D = np.diag([(gamma*(n+0.5)) + Lambda]*2)
-    C = np.diag([np.sqrt(4*eta*Lambda)]*2)
+    itraj = args.itraj ###this determines the seed
+    periods = args.periods
+    ppp = args.ppp
+    method = args.method
+    rppp = args.rppp
+    params = args.params
 
-    cov_in = np.eye(2)
+    params, exp_path = check_params(params)
+    [eta, gamma, kappa, omega, n] = params
 
-    xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
-    def dcovdt(t,cov):
-        cov= vector_to_matrix(cov)
-        XiCov = xi(cov)
-        ev_cov = np.dot(A,cov) + np.dot(cov, ct(A)) + D - np.dot(XiCov, ct(XiCov))
-        return matrix_to_vector(ev_cov)
-
-    integrate_cov = solve_ivp(dcovdt, y0=matrix_to_vector(cov_in), t_span=(0,times[-1]), t_eval=times, max_step = dt, atol=1, rtol=1)
-    covs = np.reshape(integrate_cov.y.T, (len(times),2,2))
-
-    np.random.seed(seed)
-
-    def f(t,x,parameters=None):
-        return np.dot(A, x)
-
-    xi = lambda cov: np.dot(cov, ct(C)) + ct(D)
-    def g(t,x,parameters=None):
-        gg = np.dot(xi(covs[parameters]),[np.random.normal(), np.random.normal()])
-        return gg
-
-    states = np.zeros((len(times),2))
-    states[0] = np.array([0.,0.])
-    for ind, t in enumerate(tqdm(times[:-1])):
-        states[ind+1] = euler(states[ind], t, dt, f, g, parameters=ind)
-
-    diffs = states[1:]-states[:-1]
-    invsXiCov = np.array([np.linalg.inv(xi(cov)) for cov in covs[:-1]])
-    CAx = np.einsum('ij,bj->bi',C-A,states[:-1])*dt
-    signals = np.einsum('bij,bj->bi',invsXiCov,CAx + diffs)
-
-    coeffs = [C, A, D , dt]
-    params = [eta, gamma, Lambda, omega, n]
-
-    path = path + "{}/RK4/".format(itraj)
-    os.makedirs(path, exist_ok=True)
-    np.save(path+"states".format(itraj),np.array(states ))
-    np.save(path+"covs".format(itraj),np.array(covs ))
-    np.save(path+"signals".format(itraj),np.array(signals ))
-    np.save(path+"params".format(itraj),params)
-    return
+    integrate(periods, ppp, method=method, itraj=itraj, exp_path = exp_path ,rppp = rppp,
+                eta=eta, kappa = kappa,  gamma = gamma, n = n, omega = omega)

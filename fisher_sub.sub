@@ -1,0 +1,11 @@
+executable=fisher_subash.sh
+
+output = ../jobs/outs/fisher$(Item).out
+error = ../jobs/errs/fisher$(Item).err
+log = ../jobs/logs/fisher$(Item).log
+request_cpus = 1
+request_memory = 4 GB
++flavour="short"
+
+args=$(Item)
+queue from seq 9 1 500|

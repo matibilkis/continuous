@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.python.training.tracking.data_structures import NoDependency
 from tensorflow.python.framework.tensor_shape import TensorShape
-from misc import get_def_path
+from misc import *
 import os
 
 class Rcell(tf.keras.layers.Layer):
@@ -14,33 +14,36 @@ class Rcell(tf.keras.layers.Layer):
         self.state_size = state_size
         super(Rcell, self).__init__()
 
-        self.eta, self.gamma, self.Lambda, self.omega, self.n = params
+        self.eta, self.gamma, self.kappa, self.omega, self.n = params
         self.dt = dt
 
         self.A_diag = np.diag([-.5*self.gamma]*2).astype(np.float32)
-        #A = np.array([[-.5*gamma, omega], [-omega, -0.5*gamma]])
-        self.D = np.diag([(self.gamma*(self.n+0.5)) + self.Lambda]*2).astype(np.float32)
-        self.C = np.diag([np.sqrt(4*self.eta*self.Lambda)]*2).astype(np.float32)
+        [self.C, self.A_diag, self.D , self.Lambda]  = build_matrix_from_params(params)
+        [self.C, self.A_diag, self.D , self.Lambda]  = [self.C.astype(np.float32), self.A_diag.astype(np.float32), self.D.astype(np.float32) , self.Lambda.astype(np.float32)]
         self.symplectic = np.array([[0.,1.],[-1.,0.]]).astype(np.float32)
-        self.w=1
+        self.A_diag = self.A_diag - self.omega*self.symplectic
+
+        self.w=1### 2 otherwise
 
     def build(self, input_shape):
         self.coeffs_A = self.add_weight(shape=(self.w, self.w),
                                       initializer='uniform',
                                       name='kernel')
+        omega = self.omega
+        self.coeffs_A[0].assign( np.array([np.random.uniform(omega - omega/10, omega + omega/10) ]).astype(np.float32))
         self.built = True
 
     def call(self, inputs, states):
         dy = inputs
         sts, cov = states
 
-        A = self.coeffs_A
-        if self.w == 1:
-            A = A*self.symplectic + self.A_diag
+        # A = self.coeffs_A
+        # if self.w == 1:
+        A = (self.coeffs_A*self.symplectic) + self.A_diag
 
         output = tf.einsum('ij,bj->bi',self.C, sts)*self.dt
 
-        xicov = tf.einsum('bij,jk->bik',cov,tf.transpose(self.C)) + tf.transpose(self.D)
+        xicov = tf.einsum('bij,jk->bik',cov,tf.transpose(self.C)) #+ tf.transpose(self.Lambda) ###SET ZERO... faster not having it...
         A_minus_xiC = A - tf.einsum('bij,jk->bik',xicov,self.C)
 
         dx = tf.einsum('bij,bj->bi',A_minus_xiC, sts)*self.dt + tf.einsum('bij,bj->bi', xicov, dy)
@@ -64,28 +67,28 @@ class GRNNmodel(tf.keras.Model):
                 params,
                 dt,
                 total_time,
-                traj_details,
                 x0=tf.convert_to_tensor(np.array([[1,0]]).astype(np.float32)),
                 cov_in=tf.eye(2),
+                train_path = "",
                 stateful=False):
 
         super(GRNNmodel,self).__init__()
         self.total_time = total_time
 
+        [eta, gamma, kappa, omega, n] = params
+
+        self.C_coeff = np.sqrt(2*eta*kappa)
         self.x0 = x0
         self.cov_in = cov_in
+        self.dt = dt
 
         self.total_loss = Metrica(name="total_loss")
         self.coeffsA = Metrica(name="Coeffs_A")
         self.gradient_history = Metrica(name="grads")
         self.recurrent_layer = tf.keras.layers.RNN([Rcell( dt=dt, params=params  )], return_sequences=True, stateful=stateful)
 
-        periods, ppp, train_id, itraj = traj_details
         self.stateful = stateful
-
-        path = get_def_path() + "{}periods/{}ppp/{}/".format(periods,ppp, itraj)
-        self.train_path = path+"training/train_id_{}/".format(train_id)
-        os.makedirs(self.train_path, exist_ok=True)
+        self.train_path = train_path
 
 
 
@@ -108,16 +111,19 @@ class GRNNmodel(tf.keras.Model):
     @tf.function
     def train_step(self, data):
         inputs, dys = data
+
         with tf.GradientTape() as tape:
             tape.watch(self.trainable_variables)
             preds = self(inputs)
             diff = tf.squeeze(preds - dys)
-            loss = tf.reduce_sum(tf.einsum('bj,bj->b',diff,diff))/(2*self.total_time) #this 2 comes from
+            loss = (tf.reduce_sum(tf.einsum('bj,bj->b',diff,diff)) - self.total_time)/(2*self.C_coeff*(self.dt**(3/2)))
         grads = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.trainable_variables))
         self.total_loss.update_state(loss)
         self.coeffsA.update_state(self.trainable_variables[0])
         self.gradient_history.update_state(grads)
+
+
         return {k.name:k.result() for k in self.metrics}
 
 
