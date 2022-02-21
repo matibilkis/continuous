@@ -116,7 +116,9 @@ def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossle
     if fisher is True:
         u_th = np.load(path+"u_th.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
         covs_th = np.load(path+"covs_th.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
-    return states, covs, signals, params, times, u_th, covs_th
+        return states, covs, signals, params, times, u_th, covs_th
+    else:
+        return states, covs, signals, params, times
 
 def build_matrix_from_params(params):
     [eta, gamma, kappa, omega, n] = params

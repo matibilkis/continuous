@@ -1,11 +1,12 @@
 executable=fisher_subash.sh
 
-output = ../jobs/outs/fisher$(Item).out
-error = ../jobs/errs/fisher$(Item).err
-log = ../jobs/logs/fisher$(Item).log
+output = ../jobs/outs/fishernew$(Item).out
+error = ../jobs/errs/fishernew$(Item).err
+log = ../jobs/logs/fishernew$(Item).log
 request_cpus = 1
 request_memory = 4 GB
-+flavour="short"
+requirements= Has_avx == true
++flavour="medium"
 
 args=$(Item)
-queue from seq 9 1 500|
+queue from seq 1 1 8|

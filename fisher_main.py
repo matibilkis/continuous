@@ -24,7 +24,7 @@ params = give_def_params()
 params, exp_path = check_params(params)
 [eta, gamma, kappa, omega, n] = params
 
-states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, exp_path=exp_path, rppp=rppp_reference)
+states, covs, signals, params, times = load_data(ppp=ppp, periods=periods, method=method, itraj=itraj, exp_path=exp_path, rppp=rppp_reference, fisher=False)
 
 [eta, gamma, kappa, omega, n] = params
 [C, A, D , Lambda] = build_matrix_from_params(params)
