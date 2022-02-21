@@ -84,9 +84,14 @@ def convert_solution(ss):
     signals = ss[:,2:4]
     signals = signals[1:] - signals[:-1]
 
-    covss = ss[:,-3:]
+    covss = ss[:,4:7]
     covs = [s_to_cov(s,begin_cov=0) for s in covss]
-    return states, signals, covs
+
+    u_th = ss[:,7:9]
+
+    covss_th = ss[:,9:12]
+    covs_th = [s_to_cov(s, begin_cov=0) for s in covss_th]
+    return states, signals, covs, u_th, covs_th
 
 
 def get_path_config(periods=100,ppp=1000,itraj=1,method="rossler", rppp=1, exp_path=""):
@@ -96,7 +101,7 @@ def get_path_config(periods=100,ppp=1000,itraj=1,method="rossler", rppp=1, exp_p
         pp = get_def_path()+"{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
     return pp
 
-def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossler", display=False):
+def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossler", display=False, fisher=True):
 
     path = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)
 
@@ -108,7 +113,10 @@ def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossle
     #coeffs = np.load(path+"coeffs.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
     if display is True:
         print("Traj loaded \nppp: {}\nperiods: {}\nmethod: {}\nitraj: {}".format(ppp,periods,method,itraj))
-    return states, covs, signals, params, times
+    if fisher is True:
+        u_th = np.load(path+"u_th.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
+        covs_th = np.load(path+"covs_th.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
+    return states, covs, signals, params, times, u_th, covs_th
 
 def build_matrix_from_params(params):
     [eta, gamma, kappa, omega, n] = params
