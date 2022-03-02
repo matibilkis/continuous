@@ -16,5 +16,5 @@ ppp = 1000
 periods = 10
 seed = args.seed
 
-#os.system("python3 integrate_fisher.py --ppp {} --periods {} --method {} --params {} --itraj {}".format(ppp, periods, method,  params_to_string(params), seed))### default rppp = 1
+os.system("python3 integrate_fisher.py --ppp {} --periods {} --method {} --params {} --itraj {}".format(ppp, periods, method,  params_to_string(params), seed))### default rppp = 1
 os.system("python3 train.py --ppp {} --periods {} --params {} --itraj {}".format(ppp,periods, params_to_string(params), seed))### default rppp = 1
