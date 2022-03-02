@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 from tensorflow.python.training.tracking.data_structures import NoDependency
 from tensorflow.python.framework.tensor_shape import TensorShape
-from misc import *
+from utilities.misc import *
 import os
 
 class Rcell(tf.keras.layers.Layer):

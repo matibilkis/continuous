@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from misc import *#get_def_path, ct, s_to_cov, convert_solution, get_path_config
+from utilities.misc import *
 import argparse
 from datetime import datetime
 import os
-from steps import RK4_step, Ikpw, RosslerStep
+from integration.steps import RK4_step, Ikpw, RosslerStep
 import ast
 from numba import jit
 
@@ -24,7 +24,6 @@ def Euler(ff, G, y0, times, dt,**kwargs):
     for ind, t in enumerate(tqdm(times)):
         y[ind+1] = y[ind] + ff(y[ind], t, dt=dt)*dtexp + np.dot(G(y[ind], t), noises[ind,:])
     return y
-
 
 
 
@@ -74,22 +73,17 @@ def Fs(s,t, coeffs=None, params=None, dt=None):
 
     varx, varp,covxp = s[4:7]
 
-    #dots = np.array(A*cov + cov*(A.T) + D - (cov*C.T)*(C*cov))
-    varx_dot, covxp_dot, varp_dot = [2*covxp*omega - 2*eta*kappa*(varx**2) - gamma*varx + gamma*(n + 0.5), -2*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx, -2*(covxp**2)*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
-
+    varx_dot, covxp_dot, varp_dot = ders_cov(varx, varp, covxp)
+    
     u_th = s[7:9]
-
     u_th_dot = np.dot(C, np.dot(A_th, x) + np.dot(np.dot(A, C_inv), u_th))
 
     varx_th, varp_th, covxp_th = s[9:12]
 
-##dots_th = np.array(A_th*cov + cov*(A_th.T) + cov_th*(A.T) + A*cov_th   - cov_th*C.T*C*cov - cov*C.T*C*cov_th)
-    varx_th_dot, covxp_th_dot, varp_th_dot = [2*covxp + 2*covxp_th*omega - 4*eta*kappa*varx*varx_th - gamma*varx - gamma*varx_th,
-       -2*covxp*eta*kappa*varx_th - covxp*gamma - 2*covxp_th*eta*kappa*varx - covxp_th*gamma + omega*varp_th - omega*varx_th + varp - varx,
-       -4*covxp*covxp_th*eta*kappa - 2*covxp - 2*covxp_th*omega - gamma*varp - gamma*varp_th]
-
-
-    return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot, u_th_dot[0], u_th_dot[1] , varx_th_dot, varp_th_dot, covxp_th_dot  ])
+    varx_th_dot, covxp_th_dot, varp_th_dot = ders_cov_th(varx, varp, covxp, varx_th, varp_th, covxp_th)
+    
+    
+    return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxp_dot, u_th_dot[0], u_th_dot[1] , varx_th_dot, varp_th_dot, covxp_th_dot])
 
 @jit(nopython=True)
 def Gs(s,t, coeffs=None, params=None):
@@ -117,7 +111,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
 
     note that if you sweep params exp_path needs to specified
     """
-    global A, C, D, Lambda, eta, gamma, omega, n, kappa, rppp, ders, noises, proj_C, A_th, C_inv, ders_th
+    global A, C, D, Lambda, eta, gamma, omega, n, kappa, rppp, ders, noises, proj_C, A_th, C_inv, ders_cov, ders_cov_th
 
     eta = kwargs.get("eta",1) #efficiency
     kappa = kwargs.get("kappa",1)
@@ -144,19 +138,23 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
     C_inv = np.linalg.pinv(C)
     proj_C = C/np.sum(C)
     A = np.array([[-gamma/2, omega],[-omega, -gamma/2]])
-    A_th = np.diag([-gamma/2]*2) + np.array([[0,1],[-1,0]])
+    A_th = np.array([[0,1],[-1,0]])
     D = np.diag([(gamma*(n+0.5))]*2)
     Lambda = np.zeros((2,2))
 
-    ### obtained in scipy ipynb.. thorugh scipy
-    ders = lambda varx, varp, covxp: [2*covxp*omega - 2*eta*kappa*(varx**2) - gamma*varx + gamma*(n + 0.5), -2*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx, -2*(covxp**2)*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
-
-    #ders_th = lambda varx, varp, covxp: [2*covxp + 2*covxp_th*omega - gamma*varx - gamma*varx_th,
-    #   -covxp*gamma - covxp_th*gamma + omega*varp_th - omega*varx_th + varp - varx,
-    #   -2*covxp - 2*covxp_th*omega - gamma*varp - gamma*varp_th]
-
+    ### obtained w/scipy, see utilities
+    
+    ders_cov = lambda varx, varp, covxp: [2*covxp*omega - 2*eta*kappa*varx**2 - gamma*varx + gamma*(n + 0.5),
+                -2*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx,
+                 -2*covxp**2*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
+    
+    
+    ders_cov_th = lambda varx, varp, covxp, varx_th, varp_th, covxp_th: [2*covxp + 2*covxp_th*omega - 4*eta*kappa*varx*varx_th - gamma*varx_th,
+ -2*covxp*eta*kappa*varx_th - 2*covxp_th*eta*kappa*varx - covxp_th*gamma + omega*varp_th - omega*varx_th + varp - varx,
+ -4*covxp*covxp_th*eta*kappa - 2*covxp - 2*covxp_th*omega - gamma*varp_th]
+    
+    
     Period = 2*np.pi/omega
-
     dt = Period/ppp
     times = np.arange(0.,Period*periods,dt)
 
@@ -172,11 +170,12 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
 
     #### generate long trajectory of noises
     np.random.seed(itraj)
+    
     dW = np.zeros((len(tspan), 12)) #I have ppp*periods points.
     for ind,t in enumerate(tspan):
         w0 = np.random.normal()*np.sqrt(dt)
         w1 = np.random.normal()*np.sqrt(dt)
-        dW[ind,:] = np.array([w0, w1, w0, w1 , 0.,0.,0., w0, w1,0., 0., 0.])
+        dW[ind,:] = np.array([w0, w1, w0, w1 , 0.,0.,0., w0, w1, 0., 0., 0.])  ## x0, x1,  y0, y1, varx, covxp, varp, u_th0, u_th1, var_uth0, covuth, varputh
 
     integration_times = tspan[::rppp] #jump tspan with step rppp
     noises = np.zeros((len(integration_times),dW.shape[1]))
@@ -197,7 +196,6 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
         print("integrating with RK4 is deprecatred due to weak convergence.")
 
     states, signals, covs, u_th, covs_th = convert_solution(solution)
-
     path = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)
 
     os.makedirs(path, exist_ok=True)
