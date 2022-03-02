@@ -1,0 +1,14 @@
+executable=subash.sh
+
+output = ../jobs/outs/tf_opti$(Item).out
+error = ../jobs/errs/tf_opti$(Item).err
+log = ../jobs/logs/tf_opti$(Item).log
+request_cpus = 1
+request_memory = 4 GB
+requirements= Has_avx == true
++flavour="medium"
+
+
+#### has_dvx
+args=$(Item)
+queue from seq 1001 1 1500|
