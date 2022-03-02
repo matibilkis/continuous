@@ -74,6 +74,7 @@ def Fs(s,t, coeffs=None, params=None, dt=None):
 
     varx, varp,covxp = s[4:7]
 
+    #dots = np.array(A*cov + cov*(A.T) + D - (cov*C.T)*(C*cov))
     varx_dot, covxp_dot, varp_dot = [2*covxp*omega - 2*eta*kappa*(varx**2) - gamma*varx + gamma*(n + 0.5), -2*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx, -2*(covxp**2)*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5)]
 
     u_th = s[7:9]
@@ -82,6 +83,7 @@ def Fs(s,t, coeffs=None, params=None, dt=None):
 
     varx_th, varp_th, covxp_th = s[9:12]
 
+##dots_th = np.array(A_th*cov + cov*(A_th.T) + cov_th*(A.T) + A*cov_th   - cov_th*C.T*C*cov - cov*C.T*C*cov_th)
     varx_th_dot, covxp_th_dot, varp_th_dot = [2*covxp + 2*covxp_th*omega - 4*eta*kappa*varx*varx_th - gamma*varx - gamma*varx_th,
        -2*covxp*eta*kappa*varx_th - covxp*gamma - 2*covxp_th*eta*kappa*varx - covxp_th*gamma + omega*varp_th - omega*varx_th + varp - varx,
        -4*covxp*covxp_th*eta*kappa - 2*covxp - 2*covxp_th*omega - gamma*varp - gamma*varp_th]
