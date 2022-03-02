@@ -81,6 +81,7 @@ def s_to_cov(s,begin_cov=4):
 def convert_solution(ss):
     states = ss[:,0:2]
 
+    ### we want the measurement results at each time-step
     signals = ss[:,2:4]
     signals = signals[1:] - signals[:-1]
 
