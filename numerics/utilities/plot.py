@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from misc import *
+from numerics.utilities.misc import *
 import argparse
 import os
 

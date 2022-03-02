@@ -1,6 +1,7 @@
 import numpy as np
 import ast
 import os
+
 def get_def_path():
     import getpass
     user = getpass.getuser()

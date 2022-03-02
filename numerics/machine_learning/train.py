@@ -5,7 +5,7 @@ import tensorflow as tf
 import argparse
 from datetime import datetime
 import os
-from RNN_models import *
+from numerics.machine_learning.RNN_models import *
 
 defpath = get_def_path()
 

@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from misc import *#get_def_path, ct, s_to_cov, convert_solution, get_path_config
+from numerics.utilities.misc import *#get_def_path, ct, s_to_cov, convert_solution, get_path_config
 import argparse
 from datetime import datetime
 import os
-from steps import RK4_step, Ikpw, RosslerStep
+from numerics.integration.steps import RK4_step, Ikpw, RosslerStep
 import ast
 from numba import jit
 
