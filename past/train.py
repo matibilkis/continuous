@@ -62,7 +62,6 @@ signals = signals[:index_series]
 tfsignals = tf.convert_to_tensor(signals)[tf.newaxis]
 total_time = times[-1]
 
-
 rmod = GRNNmodel(params=params, dt=dt, total_time=total_time, traj_details=[periods, ppp, train_id, itraj], cov_in=tf.convert_to_tensor(covs[0].astype(np.float32)))
 rmod.compile(optimizer=optimizer)
 rmod(tfsignals[:,:3,:]) #just initialize model

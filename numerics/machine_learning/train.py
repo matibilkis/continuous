@@ -1,10 +1,12 @@
+import os
+import sys
+sys.path.insert(0, os.getcwd())
 import numpy as np
 from tqdm import tqdm
-from misc import *
+from numerics.utilities.misc import *#get_def_path, ct, s_to_cov, convert_solution, get_path_config
 import tensorflow as tf
 import argparse
 from datetime import datetime
-import os
 from numerics.machine_learning.RNN_models import *
 
 defpath = get_def_path()
@@ -44,6 +46,18 @@ total_time = times[-1]
 st = datetime.now()
 
 
+print(len(times))
+indices = [int(k) for k in np.logspace(1, np.log10(len(times)), 10)]
+index_series = indices[train_id]
+
+times = times[:index_series]
+states = states[:index_series]
+covs = covs[:index_series]
+signals = signals[:index_series]
+
+tfsignals = tf.convert_to_tensor(signals)[tf.newaxis]
+total_time = times[-1]
+
 train_path = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path) +"training/train_id_{}/".format(train_id)
 os.makedirs(train_path, exist_ok=True)
 
@@ -54,6 +68,9 @@ np.random.seed(train_id)
 learning_rate = float(omega/50)
 optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
 tfsignals = tf.convert_to_tensor(signals)[tf.newaxis]
+
+
+
 
 rmod = GRNNmodel(params=params,
                 dt=(2*np.pi)/(ppp*omega),

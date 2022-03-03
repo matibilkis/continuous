@@ -74,7 +74,7 @@ if only_traj != 1:
     windows = get_windows()
     rppps = [1] + list(windows)
     for rppp in rppps:
-        rossler_dt[rppp], _, _, _, _ = load_data(periods=periods, ppp=ppp, method="rossler", rppp = rppp, exp_path=exp_path)
+        rossler_dt[rppp], _, _, _, _ = load_data(periods=periods, ppp=ppp, method="rossler", rppp = rppp, exp_path=exp_path, itraj=itraj)
         print(rppp)
         print(rossler_dt[rppp])
     errs_rossler_strobo = {}
