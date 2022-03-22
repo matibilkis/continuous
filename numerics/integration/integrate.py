@@ -121,8 +121,8 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
     #print("integrating with parameters: \n eta {} \nkappa {}\ngamma {} \nomega {}\nn {}\n".format(eta,kappa,gamma,omega,n))
 
     l0, l10 = 0.,0.
-    x0, p0, yx0, yp0 = 1., 0., 0.,0.
-    x10, p10 = 1., 0.
+    x0, p0, yx0, yp0 = 0., 0., 0.,0.
+    x10, p10 = 0., 0.
     varx0, varp0, covxy0 = .1 ,.1 ,1e-3
     varx10, varp10, covxy10 = .1 ,.1 ,1e-3
 
