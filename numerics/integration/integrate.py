@@ -63,11 +63,11 @@ def Fs(s,t, coeffs=None, params=None, dt=None):
 #######################3
     l = s[12]
     v1 = np.dot(C,x)
-    l_dot = - np.dot(v1,v1)/2 + np.dot(np.dot(C,x), y)
+    l_dot =  np.dot(v1,v1)/2 #+ np.dot(np.dot(C,x), y)
 
     l1 = s[13]
     v2 = np.dot(C,x1)
-    l1_dot = - np.dot(v2,v2)/2 + np.dot(np.dot(C,x1), y)
+    l1_dot =  np.dot(v2,v2)/2 #+ np.dot(np.dot(C,x1), y)
 
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxy_dot, x1dot[0], x1dot[1], varx1_dot, varp1_dot, covxy1_dot, l_dot, l1_dot])
 
@@ -83,11 +83,14 @@ def Gs(s,t, coeffs=None, params=None):
     cov1 = np.array([[varx1, covxy1], [covxy1, varp1]])
     XiCov1 = np.dot(cov1, C.T) + Lambda.T
 
-
     wieners = np.zeros((s.shape[0], s.shape[0]))
     wieners[:2,:2]  = XiCov
     wieners[2:4,2:4] = proj_C
-    wieners[7:9,7:9] = np.dot(C, XiCov1)
+    wieners[7:9,7:9] = XiCov1
+
+    wieners[12] = np.dot(C, s[:2])[0] ###this will only work for homodyning
+    wieners[13] = np.dot(C, s[7:9])[0]###this will only work for homodyning
+
     return wieners
 
 

@@ -21,8 +21,8 @@ def give_def_params(mode="test"):
 def give_def_params_discrimination(mode="test"):
     gamma = 0.3
     gamma1 = 1.
-    omega = 2*np.pi
-    omega1 = 2*np.pi
+    omega = 0#2*np.pi
+    omega1 = 0#2*np.pi
     eta = 1.
     kappa = 20
     n = 20
@@ -137,7 +137,7 @@ def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossle
     #coeffs = np.load(path+"coeffs.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
     if display is True:
         print("Traj loaded \nppp: {}\nperiods: {}\nmethod: {}\nitraj: {}".format(ppp,periods,method,itraj))
-    return times, l0, l1, states, states1, signals
+    return times, l0, l1, states, states1, signals, covs, covs1
 
 def build_matrix_from_params(params):
     [eta, gamma, kappa, omega, n] = params
