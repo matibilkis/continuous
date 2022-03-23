@@ -15,7 +15,7 @@ def get_def_path(mode="discrimination/"):
     return defpath
 
 def give_def_params(mode="test"):
-    [eta, gamma, kappa, omega, n] = [1,  .3 , 0., 10]
+    [eta, gamma, kappa, omega, n] = [1,  .3 , 0., 10, 20]
     return [eta, gamma, gamma1, kappa, omega, n]
 
 def give_def_params_discrimination(mode="test"):
