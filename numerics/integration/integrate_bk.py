@@ -21,12 +21,11 @@ def Euler(ff, G, y0, times, dt):
         y[ind+1] = y[ind] + ff(y[ind], t)*dt + np.dot(G(y[ind], t), dW[ind,:])
     return y
 
-
 @jit(nopython=True)
-def give_ders(vx, vp, cvxp, gamma_val, omega_val, kappa_val,n_val, eta_val):
-    return [2*cvxp*omega_val - 4*eta_val*kappa_val*vx**2 - gamma_val*vx + gamma_val*(n_val + 0.5) + kappa_val,
-     -4*cvxp**2*eta_val*kappa_val - 2*cvxp*omega_val - gamma_val*vp + gamma_val*(n_val + 0.5) + kappa_val,
-     -4*cvxp*eta_val*kappa_val*vx - cvxp*gamma_val + omega_val*vp - omega_val*vx]
+def give_ders(varx, varp, covxp, gamma, omega, kappa,n):
+    return [2*covxp*omega - 4*eta*kappa*varx**2 - gamma*varx + gamma*(n + 0.5) + kappa,
+         -4*covxp*eta*kappa*varx - covxp*gamma + omega*varp - omega*varx,
+         -4*covxp**2*eta*kappa - 2*covxp*omega - gamma*varp + gamma*(n + 0.5) + kappa]
 
 def RosslerSRI2(f, G, y0, times, dt):
     """
@@ -53,16 +52,20 @@ def Fs(s,t, coeffs=None, params=None, dt=None):
     """
     x = s[0:2]
     xdot = np.dot(A,x)
+
     y = s[2:4]
     ydot = np.dot(C,x)
+
     vx, vp,cvxp = s[4:7]
-    varx_dot, varp_dot, covxy_dot = give_ders(vx, vp, cvxp, gamma, omega, kappa, n, eta)
+    varx_dot, varp_dot, covxy_dot = give_ders(vx, vp, cvxp, gamma, omega, kappa, n)
 
 ###########################3
     x1 = s[7:9]
     x1dot = np.dot(A1,x1)
     varx1, varp1,covxp1 = s[9:12]
-    varx1_dot, varp1_dot, covxy1_dot = give_ders(varx1, varp1, covxp1, gamma1, omega1, kappa, n1, eta)
+
+    varx1_dot, varp1_dot, covxy1_dot = give_ders(varx1, varp1, covxp1, gamma1, omega1, kappa, n)
+
 #######################3
     l = s[12]
     v1 = np.dot(C,x)
@@ -74,9 +77,9 @@ def Fs(s,t, coeffs=None, params=None, dt=None):
 
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxy_dot, x1dot[0], x1dot[1], varx1_dot, varp1_dot, covxy1_dot, l_dot, l1_dot])
 
-
 @jit(nopython=True)
 def Gs(s,t, coeffs=None, params=None):
+    #cov = s_to_cov(s)
     varx, varp,covxy = s[4:7]
     varx1, varp1,covxy1 = s[9:12]
 
@@ -95,6 +98,7 @@ def Gs(s,t, coeffs=None, params=None):
     wieners[13] = np.dot(C, s[7:9])[0]###this will only work for homodyning
 
     return wieners
+
 
 def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
 
@@ -125,7 +129,7 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
 
     #print("integrating with parameters: \n eta {} \nkappa {}\ngamma {} \nomega {}\nn {}\n".format(eta,kappa,gamma,omega,n))
 
-    l0, l10 = 1.,1.
+    l0, l10 = 0.,0.
     x0, p0, yx0, yp0 = 0., 0., 0.,0.
     x10, p10 = 0., 0.
 
@@ -135,10 +139,12 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
     suc1 = n1 + 0.5 + kappa/gamma1
     sst1 = (gamma1/(8*eta*kappa))*(np.sqrt(1 + 16*eta*kappa*suc1/gamma1 ) -1 )
 
-    varx0, varp0, covxy0 = sst ,suc ,0.
-    varx10, varp10, covxy10 = sst1 ,suc1 ,0.
+
+    varx0, varp0, covxy0 = sst ,sst ,0.
+    varx10, varp10, covxy10 = sst1 ,sst1 ,0.
 
     s0 = np.array([x0, p0, yx0, yp0, varx0, varp0, covxy0, x10, p10, varx10 , varp10 , covxy10, l0, l10])
+
     C = np.array([[np.sqrt(4*eta*kappa),0],[0,0]]) #homodyne
     proj_C = C/np.sum(C)#np.linalg.pinv(C) this is not because i don't multiply by C
     Lambda = np.zeros((2,2))
@@ -148,12 +154,14 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
     D = np.diag([gamma*(n+0.5) + kappa]*2)
     D1 = np.diag([gamma1*(n1+0.5) + kappa]*2)
 
-
+    print(A)
+    print(D)
+    print(C)
     # Period = 2*np.pi/omega
     # dt = Period/ppp
     # times = np.arange(0.,Period*periods,dt)
     dt = 1/ppp
-    times = np.arange(0,periods+dt,dt)
+    times = np.arange(0,10+dt,dt)
     params = [gamma, gamma1, omega, omega1, eta, kappa, n, n1]
 
     #### generate long trajectory of noises
@@ -162,13 +170,16 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
     for ind,t in enumerate(times):
         w0 = np.random.normal()*np.sqrt(dt)
         w1 = np.random.normal()*np.sqrt(dt)
-        dW[ind,:] = np.array([w0, w1, w0, w1 , 0.,0.,0., w0, w1, 0., 0., 0., w0 , w0])  ## x0, x1,  y0, y1, varx, covxp, varp, u_th0, u_th1, var_uth0, covuth, varputh
+        dW[ind,:] = np.array([w0, w1, w0, w1 , 0.,0.,0., w0, w1, 0., 0., 0., 0. , 0.])  ## x0, x1,  y0, y1, varx, covxp, varp, u_th0, u_th1, var_uth0, covuth, varputh
 
-    solution = RosslerSRI2(Fs, Gs, s0, times, dt)
+    # solution = RosslerSRI2(Fs, Gs, s0, times, dt)
+    solution = Euler(Fs,Gs, s0, times, dt)
     states, signals, covs, states1, covs1, l0, l1 = convert_solution_discrimination(solution)
     path = get_path_config(periods = periods, ppp= ppp, method=method, itraj=itraj, exp_path=exp_path)
 
     os.makedirs(path, exist_ok=True)
+    np.save(path+"solution", np.array(solution))
+    np.save(path+"noises",np.array(dW))
     np.save(path+"times",np.array(times ))
     np.save(path+"states",np.array(states ))
     np.save(path+"covs",np.array(covs ))
@@ -185,8 +196,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--itraj", type=int, default=1)
-    parser.add_argument("--periods",type=int, default=53)
-    parser.add_argument("--ppp", type=int,default=1000)
+    parser.add_argument("--periods",type=int, default=5)
+    parser.add_argument("--ppp", type=int,default=100)
     parser.add_argument("--method", type=str,default="rossler")
     parser.add_argument("--rppp", type=int,default=1)
     parser.add_argument("--params", type=str, default="") #[gamma, gamma1, omega, omega1, eta, kappa, n]

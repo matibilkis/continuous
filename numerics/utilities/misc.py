@@ -24,9 +24,11 @@ def give_def_params_discrimination(mode="test"):
     omega = 0#2*np.pi
     omega1 = 0#2*np.pi
     eta = 1.
-    kappa = 20
+    kappa = 1.
     n = 20
-    return [gamma, gamma1, omega, omega1, eta, kappa, n]
+    n1 = 20
+
+    return [gamma, gamma1, omega, omega1,n, n1, eta, kappa]
 
 
 def check_params_discrimination(params):
