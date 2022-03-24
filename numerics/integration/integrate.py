@@ -52,25 +52,25 @@ def Fs(s,t, coeffs=None, params=None, dt=None):
     """
     """
     x = s[0:2]
-    xdot = np.dot(A,x)
+    xdot = np.dot(A0,x)
     y = s[2:4]
-    ydot = np.dot(C,x)
+    ydot = np.dot(C0,x)
     vx, vp,cvxp = s[4:7]
-    varx_dot, varp_dot, covxy_dot = give_ders(vx, vp, cvxp, gamma, omega, kappa, n, eta)
+    varx_dot, varp_dot, covxy_dot = give_ders(vx, vp, cvxp, gamma0, omega0, kappa0, n0, eta0)
 
 ###########################3
     x1 = s[7:9]
     x1dot = np.dot(A1,x1)
     varx1, varp1,covxp1 = s[9:12]
-    varx1_dot, varp1_dot, covxy1_dot = give_ders(varx1, varp1, covxp1, gamma1, omega1, kappa, n1, eta)
+    varx1_dot, varp1_dot, covxy1_dot = give_ders(varx1, varp1, covxp1, gamma1, omega1, kappa1, n1, eta1)
 #######################3
     l = s[12]
-    v1 = np.dot(C,x)
+    v1 = np.dot(C0,x)
     l_dot =  np.dot(v1,v1)/2 #+ np.dot(np.dot(C,x), y)
 
     l1 = s[13]
-    v2 = np.dot(C,x1)
-    l1_dot =  np.dot(v2,v2)/2 #+ np.dot(np.dot(C,x1), y)
+    v2 = np.dot(C1,x1)
+    l1_dot = -np.dot(v2,v2)/2 + np.dot(np.dot(C1,x1), np.dot(C0,x))
 
     return np.array([xdot[0], xdot[1], ydot[0],  ydot[1], varx_dot, varp_dot, covxy_dot, x1dot[0], x1dot[1], varx1_dot, varp1_dot, covxy1_dot, l_dot, l1_dot])
 
@@ -80,81 +80,79 @@ def Gs(s,t, coeffs=None, params=None):
     varx, varp,covxy = s[4:7]
     varx1, varp1,covxy1 = s[9:12]
 
-    cov = np.array([[varx, covxy], [covxy, varp]])
-    XiCov = np.dot(cov, C.T)
+    cov0 = np.array([[varx, covxy], [covxy, varp]])
+    XiCov0 = np.dot(cov0, C0.T)
 
     cov1 = np.array([[varx1, covxy1], [covxy1, varp1]])
-    XiCov1 = np.dot(cov1, C.T)
+    XiCov1 = np.dot(cov1, C1.T)
 
     wieners = np.zeros((s.shape[0], s.shape[0]))
-    wieners[:2,:2]  = XiCov
+    wieners[:2,:2]  = XiCov0
     wieners[2:4,2:4] = proj_C
     wieners[7:9,7:9] = XiCov1
 
-    wieners[12] = np.dot(C, s[:2])[0] ###this will only work for homodyning
-    wieners[13] = np.dot(C, s[7:9])[0]###this will only work for homodyning
+    wieners[12] = np.dot(C0, s[:2])[0] ###this will only work for homodyning
+    wieners[13] = np.dot(C1, s[:2])[0]###this will only work for homodyning
 
     return wieners
 
 def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
 
     """
-    everything is in the get_def_path()
-
-    note that if you sweep params exp_path needs to specified
+    h0 is the hypothesis i use to get the data.
     """
-    global A, A1, D, D1,  gamma, gamma1, omega, omega1, C,  Lambda, eta, n, n1, kappa, dW, proj_C
-
-    n = kwargs.get("n",2.0)
-    n1 = kwargs.get("n1",20.0)
-
-    eta = kwargs.get("eta",1) #efficiency
-    kappa = kwargs.get("kappa",1)
-
-    gamma = kwargs.get("gamma",0.3)
-    gamma1 = kwargs.get("gamma1",1.0)
-
-    omega = kwargs.get("omega",2*np.pi)
-    omega1 = kwargs.get("omega1",4*np.pi)
-
-    gamma, gamma1, omega, omega1, n, n1, eta, kappa = give_def_params_discrimination()
-
-    print("discriminating with eta {}, kappa {}, n {} ".format(eta, kappa,n))
-    print("omega {} and  omega1 {} ".format(omega, omega1))
-    print("gamma {} and  gamma1 {} ".format(gamma, gamma1))
-
+    global A0, A1, D0, D1, C0, C1,proj_C, gamma0, gamma1, omega0, omega1 , eta0, eta1, n0, n1, kappa0, kappa1, dW
+    # n0 = kwargs.get("n0",2.0)
+    # n1 = kwargs.get("n1",20.0)
+    #
+    # eta0 = kwargs.get("eta0",1) #efficiency
+    # eta1 = kwargs.get("eta1",1) #efficiency
+    #
+    # kappa0 = kwargs.get("kappa0",1)
+    # kappa1 = kwargs.get("kappa1",1)
+    #
+    # gamma0 = kwargs.get("gamma0",0.3)
+    # gamma1 = kwargs.get("gamma1",1.0)
+    #
+    # omega0 = kwargs.get("omega0",2*np.pi)
+    # omega1 = kwargs.get("omega1",4*np.pi)
+    params0 = [gamma0, omega0, n0, eta0, kappa0]
+    params1 = [gamma1, omega1, n1, eta1, kappa1]
+    # [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = give_def_params_discrimination()
+    print("params0: {}\nparams1 {}".format(params0, params1))
     #print("integrating with parameters: \n eta {} \nkappa {}\ngamma {} \nomega {}\nn {}\n".format(eta,kappa,gamma,omega,n))
+
+
+    def give_matrices(gamma, omega, n, eta, kappa):
+        A = np.array([[-gamma/2, omega],[-omega, -gamma/2]])
+        C = np.array([[np.sqrt(4*eta*kappa),0],[0,0]]) #homodyne
+        D = np.diag([gamma*(n+0.5) + kappa]*2)
+        return A, C, D
+
+    A0, C0, D0 = give_matrices(gamma0, omega0, n0, eta0, kappa0)
+    A1, C1, D1 = give_matrices(gamma1, omega1, n1, eta1, kappa1)
+    proj_C = C0/np.sum(C0)#np.linalg.pinv(C) this is not because i don't multiply by C
+
 
     l0, l10 = 1.,1.
     x0, p0, yx0, yp0 = 0., 0., 0.,0.
     x10, p10 = 0., 0.
 
-    suc = n + 0.5 + kappa/gamma
-    sst = (gamma/(8*eta*kappa))*(np.sqrt(1 + 16*eta*kappa*suc/gamma ) -1 )
+    def stat(gamma, omega, n, eta, kappa):
+        suc = n + 0.5 + kappa/gamma
+        sst = (gamma/(8*eta*kappa))*(np.sqrt(1 + 16*eta*kappa*suc/gamma ) -1 )
+        return suc, sst
 
-    suc1 = n1 + 0.5 + kappa/gamma1
-    sst1 = (gamma1/(8*eta*kappa))*(np.sqrt(1 + 16*eta*kappa*suc1/gamma1 ) -1 )
+    suc0, sst0 = stat(gamma0, omega0, n0, eta0, kappa0)
+    suc1, sst1 = stat(gamma1, omega1, n1, eta1, kappa1)
 
-    varx0, varp0, covxy0 = sst ,suc ,0.
+    varx0, varp0, covxy0 = sst0 ,suc0 ,0.
     varx10, varp10, covxy10 = sst1 ,suc1 ,0.
-
     s0 = np.array([x0, p0, yx0, yp0, varx0, varp0, covxy0, x10, p10, varx10 , varp10 , covxy10, l0, l10])
-    C = np.array([[np.sqrt(4*eta*kappa),0],[0,0]]) #homodyne
-    proj_C = C/np.sum(C)#np.linalg.pinv(C) this is not because i don't multiply by C
-    Lambda = np.zeros((2,2))
 
-    A = np.array([[-gamma/2, omega],[-omega, -gamma/2]])
-    A1 = np.array([[-gamma1/2, omega1],[-omega1, -gamma1/2]])
-    D = np.diag([gamma*(n+0.5) + kappa]*2)
-    D1 = np.diag([gamma1*(n1+0.5) + kappa]*2)
-
-
-    # Period = 2*np.pi/omega
-    # dt = Period/ppp
-    # times = np.arange(0.,Period*periods,dt)
     dt = 1/ppp
     times = np.arange(0,periods+dt,dt)
-    params = [gamma, gamma1, omega, omega1, eta, kappa, n, n1]
+    params = [params0,params1]
 
     #### generate long trajectory of noises
     np.random.seed(itraj)
@@ -164,15 +162,22 @@ def integrate(periods, ppp, method="rossler", itraj=1, exp_path="",**kwargs):
         w1 = np.random.normal()*np.sqrt(dt)
         dW[ind,:] = np.array([w0, w1, w0, w1 , 0.,0.,0., w0, w1, 0., 0., 0., w0 , w0])  ## x0, x1,  y0, y1, varx, covxp, varp, u_th0, u_th1, var_uth0, covuth, varputh
 
-    solution = RosslerSRI2(Fs, Gs, s0, times, dt)
-    states, signals, covs, states1, covs1, l0, l1 = convert_solution_discrimination(solution)
+    if method.lower() == "euler":
+        print("euler")
+        solution = Euler(Fs, Gs, s0, times, dt)
+    elif method.lower() == "rossler":
+        print("rossler")
+        solution = RosslerSRI2(Fs, Gs, s0, times, dt)
+    else:
+        raise NameError("asasda")
+    states0, signals0, covs0, states1, covs1, l0, l1 = convert_solution_discrimination(solution)
     path = get_path_config(periods = periods, ppp= ppp, method=method, itraj=itraj, exp_path=exp_path)
 
     os.makedirs(path, exist_ok=True)
     np.save(path+"times",np.array(times ))
-    np.save(path+"states",np.array(states ))
-    np.save(path+"covs",np.array(covs ))
-    np.save(path+"signals",np.array(signals ))
+    np.save(path+"states0",np.array(states0 ))
+    np.save(path+"covs0",np.array(covs0 ))
+    np.save(path+"signals0",np.array(signals0 ))
     np.save(path+"params",params)
     np.save(path+"states1",np.array(states1 ))
     np.save(path+"covs1",np.array(covs1 ))
@@ -185,11 +190,11 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--itraj", type=int, default=1)
-    parser.add_argument("--periods",type=int, default=53)
-    parser.add_argument("--ppp", type=int,default=1000)
+    parser.add_argument("--periods",type=int, default=2)
+    parser.add_argument("--ppp", type=int,default=100000)
     parser.add_argument("--method", type=str,default="rossler")
     parser.add_argument("--rppp", type=int,default=1)
-    parser.add_argument("--params", type=str, default="") #[gamma, gamma1, omega, omega1, eta, kappa, n]
+    parser.add_argument("--h1true", type=int, default=0)
     args = parser.parse_args()
 
     itraj = args.itraj ###this determines the seed
@@ -197,10 +202,25 @@ if __name__ == "__main__":
     ppp = args.ppp
     method = args.method
     rppp = args.rppp
-    params = args.params
+    h1 = args.h1true
 
+    params = give_def_params_discrimination(h1true = h1)
+    print(params)
     params, exp_path = check_params_discrimination(params)
-    gamma, gamma1, omega, omega1, n, n1, eta, kappa = params
+    [gamma0, omega0, n0, eta0, kappa0], [gamma1, omega1, n1, eta1, kappa1] = params
 
     integrate(periods, ppp, method=method, itraj=itraj, exp_path = exp_path ,rppp = rppp,
-                eta=eta, kappa = kappa,  gamma = gamma, n = n, omega = omega, gamma1 = gamma1, omega1 = omega1, n1=n1)
+                        eta0=eta0,
+                        kappa0 = kappa0,
+                        gamma0 = gamma0,
+                        n0 = n0,
+                        omega0 = omega0, ####
+                        eta1=eta1,
+                        kappa1 = kappa1,
+                        gamma1 = gamma1,
+                        n1 = n1,
+                        omega1 = omega1,
+                        )
+
+
+###
