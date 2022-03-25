@@ -15,32 +15,51 @@ def get_def_path(mode="discrimination/"):
     return defpath
 
 def give_def_params(mode="test"):
-    [eta, gamma, kappa, omega, n] = [1,  .3 , 0., 10]
+    [eta, gamma, kappa, omega, n] = [1,  .3 , 0., 10, 20]
     return [eta, gamma, gamma1, kappa, omega, n]
 
-def give_def_params_discrimination(mode="test"):
-    gamma = 0.3
-    gamma1 = 1.
-    omega = 0#2*np.pi
-    omega1 = 0#2*np.pi
-    eta = 1.
-    kappa = 1.
-    n = 20
-    n1 = 20
+def give_def_params_discrimination(h1true =0):
+    # gamma0 = 0.3
+    # gamma1 = 1.
+    # omega0 = 0#2*np.pi
+    # omega1 = 0#2*np.pi
+    # eta0 = 1.
+    # eta1 = 1.
+    # kappa0 = 1.
+    # kappa1 = 1.
+    # n0 = 2
+    # n1 = 20
 
-    return [gamma, gamma1, omega, omega1,n, n1, eta, kappa]
 
+    gamma1 = 14*2*np.pi
+    gamma0 = 19*2*np.pi #(Hz)
+    eta1 = 0.9
+    eta0 = 0.9
+    n1 = 14.0
+    n0 = 14.0
+    kappa1 = 2*np.pi*360
+    kappa0 = 2*np.pi*360 #(Hz)
+    omega0 = omega1 = 0.
+
+    h0 = [gamma0, omega0, n0, eta0, kappa0]
+    h1 = [gamma1, omega1, n1, eta1, kappa1]
+    if h1true == 0:
+        return [h1, h0]
+    else:
+        return [h0, h1]
 
 def check_params_discrimination(params):
-    if params == "":
-        params = give_def_params_discrimination()
-        exp_path = '{}/'.format(params)
-        #exp_path = ""
-    else:
-        if isinstance(params, str):
-            params = ast.literal_eval(params)
-        exp_path = '{}/'.format(params)
+    # if params == "":
+    #     params = give_def_params_discrimination()
+    #     exp_path = '{}/'.format(params)
+    #     #exp_path = ""
+    # else:
+    if isinstance(params, str):
+        params = ast.literal_eval(params)
+    exp_path = '{}/'.format(params)
     return params, exp_path
+
+
 
 def check_params(params):
     if params == "":
@@ -122,6 +141,38 @@ def get_path_config(periods=100,ppp=1000,itraj=1,method="rossler", rppp=1, exp_p
     else:
         pp = get_def_path()+"{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
     return pp
+
+
+
+
+def load_data_discrimination(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossler", display=False):
+
+    path = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)
+
+    times = np.load(path+"times.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    states = np.load(path+"states0.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    covs = np.load(path+"covs0.npy", allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
+    states1 = np.load(path+"states1.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    covs1 = np.load(path+"covs1.npy", allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
+    l0 = np.load(path+"loglik0.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    l1 = np.load(path+"loglik1.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    signals = np.load(path+"signals0.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
+    params = np.load(path+"params.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
+    #coeffs = np.load(path+"coeffs.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
+    if display is True:
+        print("Traj loaded \nppp: {}\nperiods: {}\nmethod: {}\nitraj: {}".format(ppp,periods,method,itraj))
+    return times, l0, l1, states, states1, signals, covs, covs1
+
+
+
+
+
+
+
+
+
+
+
 
 def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossler", display=False):
 
