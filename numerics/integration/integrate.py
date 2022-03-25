@@ -183,7 +183,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--itraj", type=int, default=1)
     parser.add_argument("--dt",type=float, default=1e-6)
-    parser.add_argument("--total_time", type=float,default=0.4)
+    parser.add_argument("--total_time", type=float,default=4)
     parser.add_argument("--h1true", type=int, default=0)
     args = parser.parse_args()
 
