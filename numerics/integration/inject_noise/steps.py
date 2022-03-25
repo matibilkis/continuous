@@ -57,6 +57,7 @@ def Aterm(N, h, m, k, dW):
     term2 = dot(Yk + sqrt2h*dW, Xk.transpose((0, 2, 1)))
     return (term1 - term2)/k
 
+
 def Ikpw(dW, h, n=5):
     """matrix I approximating repeated Ito integrals for each of N time
     intervals, based on the method of Kloeden, Platen and Wright (1992).
@@ -87,7 +88,7 @@ def Ikpw(dW, h, n=5):
 
 @jit(nopython=True)
 def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m):
-    fnh = f(Yn, t,dt)*dt # shape (d,)
+    fnh = f(Yn, t)*dt # shape (d,)
     Gn = G(Yn, t)
     sum1 = np.dot(Gn, Iij)/np.sqrt(dt) # shape (d, m)
 
@@ -97,7 +98,7 @@ def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m):
 
     H30 = Yn
     H3 = H20b - sum1
-    fn1h = f(H20, t, dt)*dt
+    fn1h = f(H20, t)*dt
     Yn1 = Yn + 0.5*(fnh + fn1h) + np.dot(Gn, Ik)
     for k in range(0, m):
         Yn1 += 0.5*np.sqrt(dt)*(G(H2[:,k], t+dt )[:,k] - G(H3[:,k], t+dt)[:,k])
