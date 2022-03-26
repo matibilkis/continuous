@@ -86,9 +86,10 @@ def Ikpw(dW, h, n=5):
     return (A, I)
 
 @jit(nopython=True)
-def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m):
+def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m, covs):
+    ##### covs is obtained through euler update (less memory consuming)
     fnh = f(Yn, t,dt)*dt # shape (d,)
-    Gn = G(Yn, t)
+    xicov = Gn = G(covs, t)
     sum1 = np.dot(Gn, Iij)/np.sqrt(dt) # shape (d, m)
 
     H20 = Yn + fnh # shape (d,)
@@ -98,7 +99,26 @@ def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m):
     H30 = Yn
     H3 = H20b - sum1
     fn1h = f(H20, t, dt)*dt
-    Yn1 = Yn + 0.5*(fnh + fn1h) + np.dot(Gn, Ik)
-    for k in range(0, m):
-        Yn1 += 0.5*np.sqrt(dt)*(G(H2[:,k], t+dt )[:,k] - G(H3[:,k], t+dt)[:,k])
+    Yn1 = Yn + 0.5*(fnh + fn1h) + np.dot(xicov, Ik)
     return Yn1
+
+
+
+# @jit(nopython=True)
+# def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m, covs):
+#     ##### covs is obtained through euler update (less memory consuming)
+#     fnh = f(Yn, t,dt)*dt # shape (d,)
+#     Gn = G(covs, t)
+#     sum1 = np.dot(Gn, Iij)/np.sqrt(dt) # shape (d, m)
+#
+#     H20 = Yn + fnh # shape (d,)
+#     H20b = np.reshape(H20, (d, 1))
+#     H2 = H20b + sum1 # shape (d, m)
+#
+#     H30 = Yn
+#     H3 = H20b - sum1
+#     fn1h = f(H20, t, dt)*dt
+#     Yn1 = Yn + 0.5*(fnh + fn1h) + np.dot(Gn, Ik)
+#     for k in range(0, m):
+#         Yn1 += 0.5*np.sqrt(dt)*(G(H2[:,k], t+dt )[:,k] - G(H3[:,k], t+dt)[:,k])
+#     return Yn1

@@ -4,13 +4,10 @@ sys.path.insert(0, os.getcwd())
 from numerics.utilities.misc import *
 from numerics.integration.steps import Ikpw, RosslerStep
 import numpy as np
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 import argparse
-from datetime import datetime
 import ast
 from numba import jit
-
 
 
 @jit(nopython=True)
@@ -20,7 +17,7 @@ def give_ders(vx, vp, cvxp, gamma_val, omega_val, kappa_val,n_val, eta_val):
      -cvxp*gamma_val - 4*cvxp*vp*eta_val*kappa_val - 4*cvxp*vx*eta_val*kappa_val + omega_val*vp - omega_val*vx]
 
 
-def Integrate_hybrid(f_hidden, G_gidden, y0_hidden, y0_exp, times, dt):
+def IntegrationLoop(y0_hidden, y0_covhidden, y0_exp, times, dt):
     """
     dy = f(y,t) *dt + G(y,t) *dW
     """
@@ -30,40 +27,51 @@ def Integrate_hybrid(f_hidden, G_gidden, y0_hidden, y0_exp, times, dt):
     _,I=Ikpw(dW,dt)
 
     yhidden = np.zeros((N, d))
+    ycovhidden = np.zeros((N,len(y0_covhidden)))
     yexper = np.zeros((N, len(y0_exp)))
 
     yhidden[0] = y0_hidden
     yexper[0] = y0_exp
-
+    ycovhidden[0] = y0_covhidden
     dys = []
-    # Gn = np.zeros((d, m), dtype=yhidden.dtype)
 
     for ind, t in enumerate(tqdm(times)):
-        yhidden[ind+1] = RosslerStep(t, yhidden[ind], dW[ind,:], I[ind,:,:], dt, f_hidden, G_gidden, d, m) ### this updates the hidden state (and the covariance)
+        yhidden[ind+1] = RosslerStep(t, yhidden[ind], dW[ind,:], I[ind,:,:], dt, Fhidden, Ghidden, d, m, ycovhidden[ind])
+        ycovhidden[ind+1] = EulerUpdate_covshidden(ycovhidden[ind], dt)
 
+        ## measurement outcome
         x1 = yhidden[ind][:2]
         dy = np.dot(C1,x1)*dt + dW[ind,:2]
         dys.append(dy)
 
-        ####   euler update, given signal ####
-        s = yexper[ind]
-        x0 = s[:2]
-        vx, vp,cvxp = s[2:5]
-        cov = np.array([[vx, cvxp], [cvxp, vp]])
-        xicovC0 = np.dot(np.dot(cov,C0.T),C0)
+        yexper[ind+1] = EulerUpdate_x0_logliks(x1, dy, yexper[ind], dt)
+    return yhidden, ycovhidden, yexper, dys
 
-        dx0 = np.dot(A0 - xicovC0, x0)*dt + np.dot(np.dot(cov,C0.T), dy)
-        varx_dot, varp_dot, covxy_dot = give_ders(vx, vp, cvxp, gamma0, omega0, kappa0, n0, eta0)
-        dvx, dvp, dcvxp = dt*varx_dot, dt*varp_dot, dt*covxy_dot
+def EulerUpdate_x0_logliks(x1,dy,s, dt):
+    """
+    this function updates the value of {x0,cov0} (wrong hypothesis) by using the dy
+    also updates the log likelihoods l1 and l0
+    """
+    ### x1 is the hidden state i use to simulate the data
+    x0 = s[:2]
+    vx, vp,cvxp = s[2:5]
+    cov = np.array([[vx, cvxp], [cvxp, vp]])
+    xicovC0 = np.dot(np.dot(cov,C0.T),C0)
 
-        l0, l1 = s[5:7]
-        u0 = np.dot(C0,x0)
-        u1 = np.dot(C1,x1)
-        dl0 = -dt*np.dot(u0,u0)/2 + np.dot(u0, dy)
-        dl1 = -dt*np.dot(u1,u1)/2 + np.dot(u1, dy)
+    dx0 = np.dot(A0 - xicovC0, x0)*dt + np.dot(np.dot(cov,C0.T), dy)
+    varx_dot, varp_dot, covxy_dot = give_ders(vx, vp, cvxp, gamma0, omega0, kappa0, n0, eta0)
+    dvx, dvp, dcvxp = dt*varx_dot, dt*varp_dot, dt*covxy_dot
 
-        yexper[ind+1] = [(x0 + dx0)[0], (x0 + dx0)[1],  vx + dvx, vp + dvp , cvxp + dcvxp, l0 + dl0, l1+dl1 ]
-    return yhidden, yexper, dys
+    l0, l1 = s[5:7]
+    u0 = np.dot(C0,x0)
+    u1 = np.dot(C1,x1)
+    dl0 = -dt*np.dot(u0,u0)/2 + np.dot(u0, dy)
+    dl1 = -dt*np.dot(u1,u1)/2 + np.dot(u1, dy)
+    return [(x0 + dx0)[0], (x0 + dx0)[1],  vx + dvx, vp + dvp , cvxp + dcvxp, l0 + dl0, l1+dl1 ]
+
+def EulerUpdate_covshidden(s, dt):
+    vx, vp,cvxp = s
+    return s+ np.array(give_ders(vx, vp, cvxp, gamma1, omega1, kappa1, n1, eta1))*dt #  varx_dot, varp_dot, covxy_dot
 
 @jit(nopython=True)
 def Fhidden(s, t, dt):
@@ -71,35 +79,14 @@ def Fhidden(s, t, dt):
     """
     x1 = s[0:2]
     x1_dot = np.dot(A1,x1)
-    vx, vp,cvxp = s[2:5]
-    varx_dot, varp_dot, covxy_dot = give_ders(vx, vp, cvxp, gamma1, omega1, kappa1, n1, eta1)
-    return np.array([x1_dot[0], x1_dot[1],varx_dot, varp_dot, covxy_dot])#, x1dot[0], x1dot[1], varx1_dot, varp1_dot, covxy1_dot, l_dot, l1_dot])
+    return np.array([x1_dot[0], x1_dot[1]])
 
 @jit(nopython=True)
-def Ghidden(s,t, coeffs=None, params=None):
-    wieners = np.zeros((s.shape[0], s.shape[0]))
-    varx, varp,covxy = s[2:5]
+def Ghidden(covs,t):
+    varx, varp,covxy = covs
     cov = np.array([[varx, covxy], [covxy, varp]])
     XiCov = np.dot(cov, C1.T)
-    wieners[:2,:2]  = XiCov
-    return wieners
-
-# @jit(nopython=True)
-# def Fexperi(s, t, x1, dy):
-#     x0 = s[:2]
-#     vx, vp,cvxp = s[2:5]
-#     cov = np.array([[vx, cvxp], [cvxp, vp]])
-#     xicovC0 = np.dot(np.dot(cov,C0.T),C0)
-#     x_dot0 = np.dot(A0 - xicovC0, x0) + np.dot(np.dot(cov,C0.T), dy/dt)
-#     varx_dot, varp_dot, covxy_dot = give_ders(vx, vp, cvxp, gamma0, omega0, kappa0, n0, eta0)
-#
-#     u0 = np.dot(C0,x0)
-#     u1 = np.dot(C1,x1)
-#
-#     dl0 = -np.dot(u0,u0)/2 + np.dot(u0, dy)/dt
-#     dl1 = -np.dot(u1,u1)/2 + np.dot(u1, dy)/dt
-#
-#     return np.array([x_dot0[0], x_dot0[1], varx_dot, varp_dot, covxy_dot, dl0, dl1 ])
+    return XiCov
 
 def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     """
@@ -110,7 +97,7 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     params1 = [gamma1, omega1, n1, eta1, kappa1]
     params0 = [gamma0, omega0, n0, eta0, kappa0]
 
-    print("params0: {}\nparams1 {}".format(params1,params0))
+    print("Hypothesis 1 (used to simulate) with params: {}\n Null hypothesis H0 has params {}\n\n".format(params1,params0))
 
     def give_matrices(gamma, omega, n, eta, kappa):
         A = np.array([[-gamma/2, omega],[-omega, -gamma/2]])
@@ -135,10 +122,8 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     varx10, varp10, covxy10 = sst1 ,suc1 ,0.
     varx0, varp0, covxy0 = sst0 ,suc0 ,0.
 
-    # s0_hidden = np.array([x1in, p1in, dyxin, dypin, varx10, varp10, covxy10])
-    # s0_exper = np.array([x0in, p0in, varx0 , varp0 , covxy0, lin0, lin1])
-
-    s0_hidden = np.array([x1in, p1in, varx10, varp10, covxy10])
+    s0_hidden = np.array([x1in, p1in])
+    s0cov_hidden = np.array([varx10, varp10, covxy10])
     s0_exper = np.array([x0in, p0in, varx0 , varp0 , covxy0, lin0, lin1])
 
     times = np.arange(0,total_time+dt,dt)
@@ -146,16 +131,11 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
 
     #### generate long trajectory of noises
     np.random.seed(itraj)
-    dW = np.zeros((len(times), 5))
-    for ind,t in enumerate(times):
-        w0 = np.random.normal()*np.sqrt(dt)
-        w1 = np.random.normal()*np.sqrt(dt)
-        dW[ind,:2] = np.array([w0, w1])  ## x0, x1,  y0, y1, varx, covxp, varp, u_th0, u_th1, var_uth0, covuth, varputh
+    dW = np.sqrt(dt)*np.random.randn(len(times),2)
 
-    yhidden, yexper, dys = Integrate_hybrid(Fhidden, Ghidden, s0_hidden, s0_exper,  times, dt)
+    yhidden, ycovhidden, yexper, dys = IntegrationLoop(s0_hidden, s0cov_hidden, s0_exper,  times, dt)
     states1 = yhidden[:,0:2]
-    #dys = yhidden[:,2:4]
-    covs1 = yhidden[:,2:5]
+    covs1 = ycovhidden[:,:3]
 
     states0 = yexper[:,0:2]
     covs0 = yexper[:,2:5]
@@ -184,16 +164,15 @@ if __name__ == "__main__":
     parser.add_argument("--itraj", type=int, default=1)
     parser.add_argument("--dt",type=float, default=1e-6)
     parser.add_argument("--total_time", type=float,default=4)
-    parser.add_argument("--h1true", type=int, default=0)
+    parser.add_argument("--flip_params", type=int, default=0)
     args = parser.parse_args()
 
     itraj = args.itraj ###this determines the seed
     total_time = args.total_time
     dt = args.dt
-    h1 = args.h1true
+    flip_params = args.flip_params
 
-    params = give_def_params_discrimination(flip = h1)
-    print(params)
+    params = give_def_params_discrimination(flip = flip_params)
     params, exp_path = check_params_discrimination(params)
     [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
 
