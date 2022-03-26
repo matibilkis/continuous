@@ -8,4 +8,4 @@ request_memory = 2 GB
 +flavour="expresso"
 
 args=$(Item)
-queue from seq 1 1 500 |
+queue from seq 501 1 1000 |
