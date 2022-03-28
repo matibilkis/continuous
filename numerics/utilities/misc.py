@@ -142,6 +142,20 @@ def get_path_config_bis(total_time=10,dt=1e-3,itraj=1,method="hybrid",exp_path="
 
 
 
+def load_data_discrimination_liks(exp_path="", itraj=1, dt=1e-3,total_time=10, method="hybrid", display=False):
+    """
+    hyp 1 is the true, that generated the data!
+    """
+    path = get_path_config_bis(total_time = total_time, dt= dt, method=method, itraj=itraj, exp_path=exp_path)
+
+    logliks = np.load(path+"logliks.npy") ### this is \textbf{q}(t)
+    #coeffs = np.load(path+"coeffs.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
+    return logliks
+
+
+
+
+
 def load_data_discrimination(exp_path="", itraj=1, dt=1e-3,total_time=10, method="hybrid", display=False):
     """
     hyp 1 is the true, that generated the data!

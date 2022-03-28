@@ -1,11 +1,11 @@
 executable=subash.sh
 
-output = ../jobs/outs/integration$(Item).out
-error = ../jobs/errs/integration$(Item).err
-log = ../jobs/logs/integration$(Item).log
+output = ../jobs/outs/integration_$(Item).out
+error = ../jobs/errs/integration_$(Item).err
+log = ../jobs/logs/integration_$(Item).log
 request_cpus = 1
 request_memory = 2 GB
 +flavour="expresso"
 
 args=$(Item)
-queue from seq 501 1 1000 |
+queue from seq 1 1 100 |
