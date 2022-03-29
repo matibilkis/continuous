@@ -14,9 +14,26 @@ def get_def_path(mode="discrimination/"):
     defpath+=mode
     return defpath
 
-def give_def_params(mode="test"):
-    [eta, gamma, kappa, omega, n] = [1,  .3 , 0., 10, 20]
-    return [eta, gamma, gamma1, kappa, omega, n]
+# def give_def_params(mode="test"):
+#     [eta, gamma, kappa, omega, n] = [1,  .3 , 0., 10, 20]
+#     return [eta, gamma, gamma1, kappa, omega, n]
+
+def give_def_params_discrimination_freqs(flip =0):
+    gamma1 = .3#14*2*np.pi
+    gamma0 = .3#19*2*np.pi #(Hz)
+    eta1 = 1.
+    eta0 = 1.
+    n1 = 20.
+    n0 = 20.
+    kappa1 = 1.
+    kappa0 = 1. #(Hz)
+    omega0 = omega1 = 0.
+    h0 = [gamma0, omega0, n0, eta0, kappa0]
+    h1 = [gamma1, omega1, n1, eta1, kappa1]
+    if flip == 0:
+        return [h1, h0]
+    else:
+        return [h0, h1]
 
 def give_def_params_discrimination(flip =0):
 
