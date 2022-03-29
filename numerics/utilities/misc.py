@@ -14,21 +14,55 @@ def get_def_path(mode="discrimination/"):
     defpath+=mode
     return defpath
 
+
+
+
+
 def give_def_params(mode="test"):
-    [eta, gamma, kappa, omega, n] = [1,  .3 , 0., 10, 20]
-    return [eta, gamma, gamma1, kappa, omega, n]
+    n = 1
+    [eta, gamma, kappa, omega, n] = [1,  10**2 , 10**6, 1*1e4, n]
+    return [eta, gamma, kappa, omega, n]
 
-def give_def_params_discrimination(flip =0):
 
-    gamma1 = 14*2*np.pi
-    gamma0 = 19*2*np.pi #(Hz)
-    eta1 = 0.9
-    eta0 = 0.9
-    n1 = 14.0
-    n0 = 14.0
-    kappa1 = 2*np.pi*360
-    kappa0 = 2*np.pi*360 #(Hz)
-    omega0 = omega1 = 0.
+
+
+
+
+
+
+def get_total_time_dt(params, ppp=1000):
+    [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
+    if omega1 != 0:
+        Period = (2*np.pi/omega1)
+        dt = Period/(ppp)
+        total_time = 50*Period 
+    else:
+        total_time, dt = 4., 1e-6
+    return total_time, dt
+
+
+
+
+
+def give_def_params_discrimination(flip =0, mode="frequencies"):
+    if mode == "frequencies":
+        print("FREQUENCY DISCRIMINATION!\n")
+        gamma0 = gamma1 = 100
+        eta0 = eta1 = 1
+        kappa0 = kappa1 = 1e6
+        n0 = n1 = 1
+        omega0, omega1 = 1e4, 5*1e4
+    elif mode=="damping":
+        print("DAMPING DISCRIMINATION!")
+        gamma1 = 14*2*np.pi
+        gamma0 = 19*2*np.pi #(Hz)
+        eta1 = 0.9
+        eta0 = 0.9
+        n1 = 14.0
+        n0 = 14.0
+        kappa1 = 2*np.pi*360
+        kappa0 = 2*np.pi*360 #(Hz)
+        omega0 = omega1 = 0.
 
     h0 = [gamma0, omega0, n0, eta0, kappa0]
     h1 = [gamma1, omega1, n1, eta1, kappa1]
@@ -38,11 +72,7 @@ def give_def_params_discrimination(flip =0):
         return [h0, h1]
 
 def check_params_discrimination(params):
-    # if params == "":
-    #     params = give_def_params_discrimination()
-    #     exp_path = '{}/'.format(params)
-    #     #exp_path = ""
-    # else:
+    
     if isinstance(params, str):
         params = ast.literal_eval(params)
     exp_path = '{}/'.format(params)
@@ -82,6 +112,8 @@ def params_to_string(params):
 def ct(A):
     return np.transpose(np.conjugate(A))
 
+
+
 def s_to_cov(s,begin_cov=4):
     varx, varp,covxy = s[begin_cov:]
     cov = np.array([[varx, covxy], [covxy, varp]])
@@ -104,6 +136,9 @@ def convert_solution(ss):
     covs_th = [s_to_cov(s, begin_cov=0) for s in covss_th]
     return states, signals, covs, u_th, covs_th
 
+
+
+
 def convert_solution_discrimination(ss):
     states = ss[:,0:2]
 
@@ -124,11 +159,11 @@ def convert_solution_discrimination(ss):
     return states, signals, covs, states1, covs1, l0, l1
 
 
-def get_path_config(periods=100,ppp=1000,itraj=1,method="rossler", rppp=1, exp_path=""):
+def get_path_config(periods=100,ppp=1000,itraj=1,method="rossler", rppp=1, exp_path="", mode=""):
     if exp_path!="":
-        pp = get_def_path()+ exp_path + "{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
+        pp = get_def_path(mode=mode)+ exp_path + "{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
     else:
-        pp = get_def_path()+"{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
+        pp = get_def_path(mode=mode)+"{}itraj/{}_real_traj_method/{}periods/{}ppp/{}rppp/".format(itraj, method, periods, ppp, rppp)
     return pp
 
 
@@ -151,8 +186,6 @@ def load_data_discrimination_liks(exp_path="", itraj=1, dt=1e-3,total_time=10, m
     logliks = np.load(path+"logliks.npy") ### this is \textbf{q}(t)
     #coeffs = np.load(path+"coeffs.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
     return logliks
-
-
 
 
 
@@ -182,23 +215,23 @@ def load_data_discrimination(exp_path="", itraj=1, dt=1e-3,total_time=10, method
 
 
 
-def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossler", display=False):
+def load_data(exp_path="", itraj=1, ppp=1000,periods=100, rppp=1, method="rossler", display=False, mode=""):
 
-    path = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path)
+    path = get_path_config(periods = periods, ppp= ppp, rppp=rppp, method=method, itraj=itraj, exp_path=exp_path, mode=mode)
 
     times = np.load(path+"times.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
     states = np.load(path+"states.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
     covs = np.load(path+"covs.npy", allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
-    states1 = np.load(path+"states1.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
-    covs1 = np.load(path+"covs1.npy", allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
-    l0 = np.load(path+"loglik0.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
-    l1 = np.load(path+"loglik1.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    #states1 = np.load(path+"states1.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    #covs1 = np.load(path+"covs1.npy", allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
+    #l0 = np.load(path+"loglik0.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+    #l1 = np.load(path+"loglik1.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
     signals = np.load(path+"signals.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
     params = np.load(path+"params.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
     #coeffs = np.load(path+"coeffs.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
     if display is True:
         print("Traj loaded \nppp: {}\nperiods: {}\nmethod: {}\nitraj: {}".format(ppp,periods,method,itraj))
-    return times, l0, l1, states, states1, signals, covs, covs1
+    return times#, l0, l1, states, states1, signals, covs, covs1
 
 def build_matrix_from_params(params):
     [eta, gamma, kappa, omega, n] = params

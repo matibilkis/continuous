@@ -172,10 +172,12 @@ if __name__ == "__main__":
     dt = args.dt
     flip_params = args.flip_params
 
-    params = give_def_params_discrimination(flip = flip_params)
+    params = give_def_params_discrimination(flip = flip_params, mode="frequencies")
     params, exp_path = check_params_discrimination(params)
     [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
 
+    total_time, dt = get_total_time_dt(params, ppp=1e4)
+    
     integrate(total_time = total_time, dt = dt,
             itraj=itraj, exp_path = exp_path,
                         eta0=eta0,
