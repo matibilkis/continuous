@@ -101,7 +101,7 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
 
     def give_matrices(gamma, omega, n, eta, kappa):
         A = np.array([[-gamma/2, omega],[-omega, -gamma/2]])
-        C = np.sqrt(4*eta*kappa)*np.array([[1.,0.],[0.,1.]]) #homodyne
+        C = np.sqrt(4*eta*kappa)*np.array([[1.,0.],[0.,0.]]) #homodyne
         D = np.diag([gamma*(n+0.5) + kappa]*2)
         return A, C, D
 
@@ -119,8 +119,8 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
 
     suc1, sst1 = stat(gamma1, omega1, n1, eta1, kappa1)
     suc0, sst0 = stat(gamma0, omega0, n0, eta0, kappa0)
-    varx10, varp10, covxy10 = sst1 ,suc1 ,0.
-    varx0, varp0, covxy0 = sst0 ,suc0 ,0.
+    varx10, varp10, covxy10 = sst1 ,sst1 ,0.
+    varx0, varp0, covxy0 = sst0 ,sst0 ,0.
 
     s0_hidden = np.array([x1in, p1in])
     s0cov_hidden = np.array([varx10, varp10, covxy10])
@@ -131,6 +131,7 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
 
     #### generate long trajectory of noises
     np.random.seed(itraj)
+    print(dt)
     dW = np.sqrt(dt)*np.random.randn(len(times),2)
 
     yhidden, ycovhidden, yexper, dys = IntegrationLoop(s0_hidden, s0cov_hidden, s0_exper,  times, dt)
@@ -177,7 +178,7 @@ if __name__ == "__main__":
     [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
 
     total_time, dt = get_total_time_dt(params, ppp=1e4)
-    
+
     integrate(total_time = total_time, dt = dt,
             itraj=itraj, exp_path = exp_path,
                         eta0=eta0,
