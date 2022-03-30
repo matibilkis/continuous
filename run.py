@@ -16,7 +16,7 @@ seed = args.seed
 
 
 os.system("python3 numerics/integration/integrate.py --itraj {}".format(seed))### default rppp = 1
-# os.system("python3 numerics/integration/integrate.py --itraj {} --flip_params 1".format(seed))### default rppp = 1
+os.system("python3 numerics/integration/integrate.py --itraj {} --flip_params 1".format(seed))### default rppp = 1
 
 # os.system("python3 numerics/integration/integrate_with_fisher.py --ppp {} --periods {} --method {} --params {} --itraj {}".format(ppp, periods, method,  params_to_string(params), seed))### default rppp = 1
 # for itraj in range(10):

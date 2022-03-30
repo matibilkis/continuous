@@ -177,7 +177,7 @@ if __name__ == "__main__":
     params, exp_path = check_params_discrimination(params)
     [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
 
-    total_time, dt = get_total_time_dt(params, ppp=1e4)
+    total_time, dt = get_total_time_dt(params, ppp=1e3)
 
     integrate(total_time = total_time, dt = dt,
             itraj=itraj, exp_path = exp_path,

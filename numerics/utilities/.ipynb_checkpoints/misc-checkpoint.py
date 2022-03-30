@@ -35,7 +35,7 @@ def get_total_time_dt(params, ppp=1000):
     if omega1 != 0:
         Period = (2*np.pi/omega1)
         dt = Period/(ppp)
-        total_time = 50*Period 
+        total_time = 10*Period 
     else:
         total_time, dt = 4., 1e-6
     return total_time, dt
@@ -44,19 +44,14 @@ def get_total_time_dt(params, ppp=1000):
 
 
 
-
-
-
-
-
 def give_def_params_discrimination(flip =0, mode="frequencies"):
     if mode == "frequencies":
-        print("FREQUENCY DISCRIMINATION!\n")
+        #print("FREQUENCY DISCRIMINATION!\n")
         gamma0 = gamma1 = 100
         eta0 = eta1 = 1
         kappa0 = kappa1 = 1e6
         n0 = n1 = 1
-        omega0, omega1 = 1e4, 5*1e4
+        omega0, omega1 = 1e4, 1e4 + 1e3
     elif mode=="damping":
         print("DAMPING DISCRIMINATION!")
         gamma1 = 14*2*np.pi
@@ -77,11 +72,7 @@ def give_def_params_discrimination(flip =0, mode="frequencies"):
         return [h0, h1]
 
 def check_params_discrimination(params):
-    # if params == "":
-    #     params = give_def_params_discrimination()
-    #     exp_path = '{}/'.format(params)
-    #     #exp_path = ""
-    # else:
+    
     if isinstance(params, str):
         params = ast.literal_eval(params)
     exp_path = '{}/'.format(params)
@@ -121,6 +112,8 @@ def params_to_string(params):
 def ct(A):
     return np.transpose(np.conjugate(A))
 
+
+
 def s_to_cov(s,begin_cov=4):
     varx, varp,covxy = s[begin_cov:]
     cov = np.array([[varx, covxy], [covxy, varp]])
@@ -142,6 +135,9 @@ def convert_solution(ss):
     covss_th = ss[:,9:12]
     covs_th = [s_to_cov(s, begin_cov=0) for s in covss_th]
     return states, signals, covs, u_th, covs_th
+
+
+
 
 def convert_solution_discrimination(ss):
     states = ss[:,0:2]
