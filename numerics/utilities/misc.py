@@ -11,6 +11,8 @@ def get_def_path(mode="discrimination/"):
         defpath = '../quantera/trajectories/'
     else:
         defpath = "/data/uab-giq/scratch/matias/quantera/trajectories/"
+    if mode[-1] != "/":
+        mode+="/"
     defpath+=mode
     return defpath
 
@@ -30,14 +32,12 @@ def give_def_params(mode="test"):
 
 
 
-def get_total_time_dt(params, ppp=1000):
+def get_total_time_dt(params, ppp=1000, dt=1e-5, total_time=4):
     [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
     if omega1 != 0:
         Period = (2*np.pi/omega1)
         dt = Period/(ppp)
         total_time = 10*Period 
-    else:
-        total_time, dt = 4., 1e-6
     return total_time, dt
 
 
@@ -53,7 +53,7 @@ def give_def_params_discrimination(flip =0, mode="frequencies"):
         n0 = n1 = 1
         omega0, omega1 = 1e4, 1e4 + 1e3
     elif mode=="damping":
-        print("DAMPING DISCRIMINATION!")
+        #print("DAMPING DISCRIMINATION!")
         gamma1 = 14*2*np.pi
         gamma0 = 19*2*np.pi #(Hz)
         eta1 = 0.9
@@ -189,25 +189,28 @@ def load_data_discrimination_liks(exp_path="", itraj=1, dt=1e-3,total_time=10, m
 
 
 
-def load_data_discrimination(exp_path="", itraj=1, dt=1e-3,total_time=10, method="hybrid", display=False):
+def load_data_discrimination(exp_path="", itraj=1, dt=1e-3,total_time=10, method="hybrid", save_all=0,display=False):
     """
     hyp 1 is the true, that generated the data!
     """
     path = get_path_config_bis(total_time = total_time, dt= dt, method=method, itraj=itraj, exp_path=exp_path)
-
     times = np.load(path+"times.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
-    states0 = np.load(path+"states0.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
-    covs0 = np.load(path+"covs0.npy", allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
+    
     states1 = np.load(path+"states1.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
-    covs1 = np.load(path+"covs1.npy", allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
     logliks = np.load(path+"logliks.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
-    signals = np.load(path+"dys.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
     params = np.load(path+"params.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
-    #coeffs = np.load(path+"coeffs.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
-    if display is True:
-        print("Traj loaded \nppp: {}\nperiods: {}\nmethod: {}\nitraj: {}".format(ppp,periods,method,itraj))
-    return times, logliks, states1, states0, signals, covs1, covs0
+    signals = np.load(path+"dys.npy", allow_pickle=True).astype(np.float32) ##this is the dy's
 
+    if save_all == 1:
+        states0 = np.load(path+"states0.npy", allow_pickle=True).astype(np.float32) ### this is \textbf{q}(t)
+        covs0 = np.load(path+"covs0.npy", allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
+        covs1 = np.load(path+"covs1.npy", allow_pickle=True).astype(np.float32) ## this is the \Sigma(t)
+        #coeffs = np.load(path+"coeffs.npy".format(itraj), allow_pickle=True).astype(np.float32) ##this is the dy's
+        if display is True:
+            print("Traj loaded \nppp: {}\nperiods: {}\nmethod: {}\nitraj: {}".format(ppp,periods,method,itraj))
+        return times, logliks, states1, states0, signals, covs1, covs0
+    else:
+        return times, logliks, states1, signals, params
 
 
 

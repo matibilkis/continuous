@@ -94,6 +94,7 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     """
     global A0, A1, D0, D1, C0, C1,proj_C, gamma0, gamma1, omega0, omega1 , eta0, eta1, n0, n1, kappa0, kappa1, dW, sprev
 
+    save_all = kwargs.get("save_all",0)
     params1 = [gamma1, omega1, n1, eta1, kappa1]
     params0 = [gamma0, omega0, n0, eta0, kappa0]
 
@@ -131,7 +132,6 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
 
     #### generate long trajectory of noises
     np.random.seed(itraj)
-    print(dt)
     dW = np.sqrt(dt)*np.random.randn(len(times),2)
 
     yhidden, ycovhidden, yexper, dys = IntegrationLoop(s0_hidden, s0cov_hidden, s0_exper,  times, dt)
@@ -145,18 +145,20 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     path = get_path_config_bis(total_time=total_time, dt=dt, method="hybrid", itraj=itraj, exp_path=exp_path)
 
     os.makedirs(path, exist_ok=True)
+
     np.save(path+"times",np.array(times ))
     np.save(path+"params",params)
-
-    np.save(path+"states1",np.array(states1 ))
-    np.save(path+"covs1",np.array(covs1 ))
-    np.save(path+"states0",np.array(states0 ))
-    np.save(path+"covs0",np.array(covs0 ))
-
-    np.save(path+"dys",np.array(dys ))
     np.save(path+"logliks",liks)
+    np.save(path+"states1",np.array(states1 ))
+    np.save(path+"dys",np.array(dys ))
+    
+    if save_all == 1:
+        #np.save(path+"states1",np.array(states1 ))
+        np.save(path+"covs1",np.array(covs1 ))
+        np.save(path+"states0",np.array(states0 ))
+        np.save(path+"covs0",np.array(covs0 ))
 
-    print("traj saved in", path)
+    print("traj saved in {}\n save_all {}".format(path, save_all))
     return
 
 if __name__ == "__main__":
@@ -166,21 +168,28 @@ if __name__ == "__main__":
     parser.add_argument("--dt",type=float, default=1e-6)
     parser.add_argument("--total_time", type=float,default=4)
     parser.add_argument("--flip_params", type=int, default=0)
+    parser.add_argument("--mode", type=str, default="frequencies")
+    parser.add_argument("--save_all", type=int, default=0)
+    
     args = parser.parse_args()
 
     itraj = args.itraj ###this determines the seed
     total_time = args.total_time
     dt = args.dt
     flip_params = args.flip_params
-
-    params = give_def_params_discrimination(flip = flip_params, mode="frequencies")
+    save_all = args.save_all
+    
+    params = give_def_params_discrimination(flip = flip_params, mode=args.mode)
     params, exp_path = check_params_discrimination(params)
     [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
 
-    total_time, dt = get_total_time_dt(params, ppp=1e3)
+    total_time, dt = get_total_time_dt(params, ppp=1e3, dt=dt, total_time=total_time)
 
-    integrate(total_time = total_time, dt = dt,
-            itraj=itraj, exp_path = exp_path,
+    integrate(total_time = total_time,
+                        dt = dt,
+                        itraj=itraj,
+                        exp_path = exp_path,
+                        save_all = save_all,
                         eta0=eta0,
                         kappa0 = kappa0,
                         gamma0 = gamma0,
