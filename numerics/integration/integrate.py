@@ -98,11 +98,11 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     params1 = [gamma1, omega1, n1, eta1, kappa1]
     params0 = [gamma0, omega0, n0, eta0, kappa0]
 
-    print("Hypothesis 1 (used to simulate) with params: {}\n Null hypothesis H0 has params {}\n\n".format(params1,params0))
+    # print("Hypothesis 1 (used to simulate) with params: {}\n Null hypothesis H0 has params {}\n\n".format(params1,params0))
 
     def give_matrices(gamma, omega, n, eta, kappa):
         A = np.array([[-gamma/2, omega],[-omega, -gamma/2]])
-        C = np.sqrt(4*eta*kappa)*np.array([[1.,0.],[0.,0.]]) #homodyne
+        C = np.sqrt(4*eta*kappa)*np.array([[1.,0.],[0.,1.]]) #homodyne
         D = np.diag([gamma*(n+0.5) + kappa]*2)
         return A, C, D
 
@@ -142,24 +142,24 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     covs0 = yexper[:,2:5]
     liks = yexper[:,5:]
 
-    path = get_path_config_bis(total_time=total_time, dt=dt, method="hybrid", itraj=itraj, exp_path=exp_path)
+    path = get_path_config(total_time=total_time, dt=dt, itraj=itraj, exp_path=exp_path)
 
     os.makedirs(path, exist_ok=True)
     np.save(path+"logliks",liks)
-    
-    if save_all == 1:
-        
-        np.save(path+"times",np.array(times ))
-        np.save(path+"params",params)
-        np.save(path+"states1",np.array(states1 ))
-        np.save(path+"dys",np.array(dys ))
+    #
+    # if save_all == 1:
+    #
+    #     np.save(path+"times",np.array(times ))
+    #     np.save(path+"params",params)
+    #     np.save(path+"states1",np.array(states1 ))
+    #     np.save(path+"dys",np.array(dys ))
+    #
+    #     #np.save(path+"states1",np.array(states1 ))
+    #     np.save(path+"covs1",np.array(covs1 ))
+    #     np.save(path+"states0",np.array(states0 ))
+    #     np.save(path+"covs0",np.array(covs0 ))
 
-        #np.save(path+"states1",np.array(states1 ))
-        np.save(path+"covs1",np.array(covs1 ))
-        np.save(path+"states0",np.array(states0 ))
-        np.save(path+"covs0",np.array(covs0 ))
-
-    print("traj saved in {}\n save_all {}".format(path, save_all))
+    # print("traj saved in {}\n save_all {}".format(path, save_all))
     return
 
 if __name__ == "__main__":
@@ -171,7 +171,7 @@ if __name__ == "__main__":
     parser.add_argument("--flip_params", type=int, default=0)
     parser.add_argument("--mode", type=str, default="frequencies")
     parser.add_argument("--save_all", type=int, default=0)
-    
+
     args = parser.parse_args()
 
     itraj = args.itraj ###this determines the seed
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     dt = args.dt
     flip_params = args.flip_params
     save_all = args.save_all
-    
+
     params = give_def_params_discrimination(flip = flip_params, mode=args.mode)
     params, exp_path = check_params_discrimination(params)
     [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params

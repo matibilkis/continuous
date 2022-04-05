@@ -1,1 +1,0 @@
-integrate petit is ok for stationary variance.

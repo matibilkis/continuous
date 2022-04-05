@@ -1,0 +1,3 @@
+numba
+tqdm
+matlotlib
