@@ -35,7 +35,7 @@ def IntegrationLoop(y0_hidden, y0_covhidden, y0_exp, times, dt):
     ycovhidden[0] = y0_covhidden
     dys = []
 
-    for ind, t in enumerate(tqdm(times)):
+    for ind, t in enumerate(times):
         yhidden[ind+1] = RosslerStep(t, yhidden[ind], dW[ind,:], I[ind,:,:], dt, Fhidden, Ghidden, d, m, ycovhidden[ind])
         ycovhidden[ind+1] = EulerUpdate_covshidden(ycovhidden[ind], dt)
 
@@ -145,14 +145,15 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     path = get_path_config_bis(total_time=total_time, dt=dt, method="hybrid", itraj=itraj, exp_path=exp_path)
 
     os.makedirs(path, exist_ok=True)
-
-    np.save(path+"times",np.array(times ))
-    np.save(path+"params",params)
     np.save(path+"logliks",liks)
-    np.save(path+"states1",np.array(states1 ))
-    np.save(path+"dys",np.array(dys ))
     
     if save_all == 1:
+        
+        np.save(path+"times",np.array(times ))
+        np.save(path+"params",params)
+        np.save(path+"states1",np.array(states1 ))
+        np.save(path+"dys",np.array(dys ))
+
         #np.save(path+"states1",np.array(states1 ))
         np.save(path+"covs1",np.array(covs1 ))
         np.save(path+"states0",np.array(states0 ))

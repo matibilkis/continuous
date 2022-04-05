@@ -169,9 +169,9 @@ def get_path_config(periods=100,ppp=1000,itraj=1,method="rossler", rppp=1, exp_p
 
 def get_path_config_bis(total_time=10,dt=1e-3,itraj=1,method="hybrid",exp_path=""):
     if exp_path!="":
-        pp = get_def_path()+ exp_path +"{}itraj/{}_method/{}_total_time/{}_dt".format(itraj, method, total_time, dt)
+        pp = get_def_path()+ exp_path +"{}itraj/{}_method/{}_total_time/{}_dt/".format(itraj, method, total_time, dt)
     else:
-        pp = get_def_path()+"{}itraj/{}_method/{}_total_time/{}_dt".format(itraj, method, total_time, dt)
+        pp = get_def_path()+"{}itraj/{}_method/{}_total_time/{}_dt/".format(itraj, method, total_time, dt)
     return pp
 
 

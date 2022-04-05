@@ -1,12 +1,12 @@
 executable=subash.sh
 
-output = ../jobs/outs/damping$(Item).out
-error = ../jobs/errs/damping$(Item).err
-log = ../jobs/logs/damping$(Item).log
+output = ../jobs/outs/$(mode)_$(Item).out
+error = ../jobs/errs/$(mode)_$(Item).err
+log = ../jobs/logs/$(mode)_$(Item).log
 request_cpus = 1
 request_memory = 2 GB
-+flavour="expresso"
++flavour="medium"
 
 mode='damping'
 args=$(Item) $(mode)
-queue from seq 1 10 10 |
+queue from seq 1001 50 10001 |
