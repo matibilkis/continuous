@@ -9,4 +9,4 @@ request_memory = 2 GB
 
 mode='damping'
 args=$(Item) $(mode)
-queue from seq 1001 50 10001 |
+queue from seq 1 100 10000 |
