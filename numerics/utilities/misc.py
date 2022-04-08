@@ -61,7 +61,7 @@ def get_total_time_dt(params, ppp=1000, dt=1e-5, total_time=4):
     if omega1 != 0:
         Period = (2*np.pi/omega1)
         dt = Period/(ppp)
-        total_time = 10*Period
+        total_time = total_time*Period
     return total_time, dt
 
 
@@ -94,11 +94,11 @@ def load_data_discrimination_liks(exp_path="", itraj=1, dt=1e-3,total_time=10):
 #### analysis stopping time ###
 
 
-def load_liks(itrajj, mode="damping", dtt=1e-6, total_time=4.):
+def load_liks(itrajj, mode="damping", dtt=1e-6, total_time_in=4.):
     pars = give_def_params_discrimination(flip=0, mode = mode, )
     params, exp_path = check_params_discrimination(pars)
 
-    total_time, dt = get_total_time_dt(params, ppp=1000, dt=dtt, total_time = total_time)
+    total_time, dt = get_total_time_dt(params, ppp=1000, dt=dtt, total_time = total_time_in)
     
     logliks =load_data_discrimination_liks(itraj=itrajj, total_time = total_time, dt=dt, exp_path = exp_path)
     l0,l1 = logliks[:,0], logliks[:,1]
@@ -106,7 +106,7 @@ def load_liks(itrajj, mode="damping", dtt=1e-6, total_time=4.):
 
     pars = give_def_params_discrimination(flip=1, mode=mode)
     params, exp_path = check_params_discrimination(pars)
-    total_time, dt = get_total_time_dt(params, ppp=1000,dt=dtt ,total_time = total_time)
+    total_time, dt = get_total_time_dt(params, ppp=1000,dt=dtt ,total_time = total_time_in)
     logliks_swap =load_data_discrimination_liks(itraj=itrajj, total_time = total_time, dt=dt, exp_path = exp_path)
     log_lik_ratio_swap = logliks_swap[:,0] - logliks_swap[:,1]  
     

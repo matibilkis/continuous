@@ -1,12 +1,12 @@
 executable=subash.sh
 
-output = ../jobs/outs/$(mode)_$(Item).out
-error = ../jobs/errs/$(mode)_$(Item).err
-log = ../jobs/logs/$(mode)_$(Item).log
+output = ../jobs/outs/$(mode)_1$(Item).out
+error = ../jobs/errs/$(mode)_1$(Item).err
+log = ../jobs/logs/$(mode)_1$(Item).log
 request_cpus = 1
 request_memory = 2 GB
-+flavour="short"
++flavour="medium"
 
 mode='frequencies'
 args=$(Item) $(mode)
-queue from seq 1000 100 10000 |
+queue from seq 1 10 1000 |
