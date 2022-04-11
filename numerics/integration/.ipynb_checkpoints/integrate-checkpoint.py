@@ -147,15 +147,16 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     os.makedirs(path, exist_ok=True)
     np.save(path+"logliks",liks)
     #
-    # if save_all == 1:
+    if save_all == 1:
+         np.save(path+"covs1",np.array(covs1 ))
+        
     #
-    #     np.save(path+"times",np.array(times ))
+        #p.save(path+"times",np.array(times ))
     #     np.save(path+"params",params)
     #     np.save(path+"states1",np.array(states1 ))
     #     np.save(path+"dys",np.array(dys ))
     #
     #     #np.save(path+"states1",np.array(states1 ))
-    #     np.save(path+"covs1",np.array(covs1 ))
     #     np.save(path+"states0",np.array(states0 ))
     #     np.save(path+"covs0",np.array(covs0 ))
 
@@ -170,7 +171,7 @@ if __name__ == "__main__":
     parser.add_argument("--total_time", type=float,default=4)
     parser.add_argument("--flip_params", type=int, default=0)
     parser.add_argument("--mode", type=str, default="frequencies")
-    parser.add_argument("--save_all", type=int, default=0)
+    parser.add_argument("--save_all", type=int, default=1)
 
     args = parser.parse_args()
 

@@ -19,7 +19,7 @@ mode = args.mode
 dt = args.dt
 total_time = args.total_time
 s=datetime.now()
-for k in range(10):
+for k in range(1):
     os.system("python3 numerics/integration/integrate.py --itraj {} --mode {} --dt {} --total_time {}".format(seed+k, mode, dt, total_time))
     #print(datetime.now()-s)
     os.system("python3 numerics/integration/integrate.py --itraj {} --flip_params 1 --mode {} --dt {} --total_time {}".format(seed+k, mode, dt, total_time))
