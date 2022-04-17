@@ -4,9 +4,10 @@ output = ../jobs/outs/$(mode)_1$(Item).out
 error = ../jobs/errs/$(mode)_1$(Item).err
 log = ../jobs/logs/$(mode)_1$(Item).log
 request_cpus = 1
-request_memory = 2 GB
-+flavour="medium"
+request_memory = 4 GB
++flavour="short"
 
 mode='frequencies'
-args=$(Item) $(mode)
-queue from seq 1 10 1000 |
+tim=50
+args=$(Item) $(mode) $(tim)
+queue from seq 1 10 2000 |

@@ -145,10 +145,18 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     path = get_path_config(total_time=total_time, dt=dt, itraj=itraj, exp_path=exp_path)
 
     os.makedirs(path, exist_ok=True)
-    np.save(path+"logliks",liks)
+    
+    
+    #indis = np.logspace(1,np.log10(len(times)-1), 1000)
+    #indis = [int(k) for k in indis]
+    #timind = [times[ind] for ind in indis]
+    #logliks_short =  np.array([liks[ii] for ii in indis])
+    np.save(path+"logliks",logliks)#_short)
+    #np.save(path+"times",timind)
+    
     #
-    if save_all == 1:
-         np.save(path+"covs1",np.array(covs1 ))
+    #if save_all == 1:
+    #     np.save(path+"covs1",np.array(covs1 ))
         
     #
         #p.save(path+"times",np.array(times ))
@@ -168,16 +176,19 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--itraj", type=int, default=1)
     parser.add_argument("--dt",type=float, default=1e-6)
+    parser.add_argument("--ppp",type=float, default=1e5)
+    
     parser.add_argument("--total_time", type=float,default=4)
     parser.add_argument("--flip_params", type=int, default=0)
     parser.add_argument("--mode", type=str, default="frequencies")
-    parser.add_argument("--save_all", type=int, default=1)
+    parser.add_argument("--save_all", type=int, default=0)
 
     args = parser.parse_args()
 
     itraj = args.itraj ###this determines the seed
     total_time = args.total_time
     dt = args.dt
+    ppp = args.ppp
     flip_params = args.flip_params
     save_all = args.save_all
 
@@ -185,7 +196,7 @@ if __name__ == "__main__":
     params, exp_path = check_params_discrimination(params)
     [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
 
-    total_time, dt = get_total_time_dt(params, ppp=1e3, dt=dt, total_time=total_time)
+    total_time, dt = get_total_time_dt(params, dt=dt, total_time=total_time, ppp=ppp)
 
     integrate(total_time = total_time,
                         dt = dt,

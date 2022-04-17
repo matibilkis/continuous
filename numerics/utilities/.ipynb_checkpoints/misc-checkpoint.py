@@ -24,7 +24,7 @@ def give_def_params_discrimination(flip =0, mode="damping"):
         eta0 = eta1 = 1
         kappa0 = kappa1 = 1e6
         n0 = n1 = 1
-        omega0, omega1 = 1e4, 1e4 + 1e3
+        omega0, omega1 = 1e4, 2e4 + 1e3
     elif mode=="damping":
         #print("DAMPING DISCRIMINATION!")
         gamma1 = 14*2*np.pi
@@ -56,10 +56,11 @@ def ct(A):
 
 
 
-def get_total_time_dt(params, ppp=1000, dt=1e-5, total_time=4):
+def get_total_time_dt(params, ppp=10**5, dt=1e-5, total_time=4):
     [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
-    if omega1 != 0:
-        Period = (2*np.pi/omega1)
+    if (omega1 != 0) and (omega0 !=0):
+        med = (omega1+omega0)/2
+        Period = (2*np.pi/med)
         dt = Period/(ppp)
         total_time = total_time*Period
     return total_time, dt
@@ -76,6 +77,19 @@ def get_path_config(total_time=10,dt=1e-3,itraj=1,method="hybrid",exp_path=""):
 
 
 def load_data_discrimination_liks(exp_path="", itraj=1, dt=1e-3,total_time=10):
+    """
+    hyp 1 is the true, that generated the data!
+    """
+    path = get_path_config(total_time = total_time, dt= dt, itraj=itraj, exp_path=exp_path)
+
+    logliks = np.load(path+"logliks.npy",allow_pickle=True,fix_imports=True,encoding='latin1') ### this is \textbf{q}(t)
+    #tims = np.load(path+"times.npy",allow_pickle=True,fix_imports=True,encoding='latin1')
+    return logliks#, tims
+
+
+
+
+def load_data_discrimination_liks_v2(exp_path="", itraj=1, dt=1e-3,total_time=10):
     """
     hyp 1 is the true, that generated the data!
     """
