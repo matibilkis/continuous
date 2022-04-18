@@ -5,9 +5,9 @@ error = ../jobs/errs/$(mode)_1$(Item).err
 log = ../jobs/logs/$(mode)_1$(Item).log
 request_cpus = 1
 request_memory = 4 GB
-+flavour="short"
++flavour="medium"
 
-mode='frequencies'
-tim=50
+mode='damping'
+tim=6
 args=$(Item) $(mode) $(tim)
 queue from seq 1 10 2000 |

@@ -151,7 +151,7 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     #indis = [int(k) for k in indis]
     #timind = [times[ind] for ind in indis]
     #logliks_short =  np.array([liks[ii] for ii in indis])
-    np.save(path+"logliks",logliks)#_short)
+    np.save(path+"logliks",liks)#_short)
     #np.save(path+"times",timind)
     
     #
