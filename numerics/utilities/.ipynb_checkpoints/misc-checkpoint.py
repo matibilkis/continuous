@@ -18,7 +18,7 @@ def get_def_path(mode="discrimination/"):
 
 
 def give_def_params_discrimination(flip =0, mode="damping"):
-    if mode == "frequencies":
+    if str(mode) == "frequencies":
         #print("FREQUENCY DISCRIMINATION!\n")
         gamma0 = gamma1 = 100
         eta0 = eta1 = 1
@@ -107,24 +107,20 @@ def load_data_discrimination_liks_v2(exp_path="", itraj=1, dt=1e-3,total_time=10
 
 #### analysis stopping time ###
 
-
-def load_liks(itrajj, mode="damping", dtt=1e-6, total_time_in=4.):
-    pars = give_def_params_discrimination(flip=0, mode = mode, )
+def load_liks(itraj, mode="frequencies", dtt=1e-6, total_time_in=50.):
+    pars = give_def_params_discrimination(flip=0, mode = mode)
     params, exp_path = check_params_discrimination(pars)
-
-    total_time, dt = get_total_time_dt(params, ppp=1000, dt=dtt, total_time = total_time_in)
+    [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
+    logliks =load_data_discrimination_liks(itraj=itraj, total_time = total_time_in, dt=dtt, exp_path = exp_path)
+    l1  = logliks[:,0] - logliks[:,1]
     
-    logliks =load_data_discrimination_liks(itraj=itrajj, total_time = total_time, dt=dt, exp_path = exp_path)
-    l0,l1 = logliks[:,0], logliks[:,1]
-    log_lik_ratio = l1 - l0  ###
-
-    pars = give_def_params_discrimination(flip=1, mode=mode)
+    pars = give_def_params_discrimination(flip=1, mode = mode)
     params, exp_path = check_params_discrimination(pars)
-    total_time, dt = get_total_time_dt(params, ppp=1000,dt=dtt ,total_time = total_time_in)
-    logliks_swap =load_data_discrimination_liks(itraj=itrajj, total_time = total_time, dt=dt, exp_path = exp_path)
-    log_lik_ratio_swap = logliks_swap[:,0] - logliks_swap[:,1]  
+    [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
+    logliks =load_data_discrimination_liks(itraj=itraj, total_time = total_time_in, dt=dtt, exp_path = exp_path)
+    l0  = logliks[:,1] - logliks[:,0]
     
-    return log_lik_ratio, log_lik_ratio_swap
+    return l0, l1#, tims
 
 
 def get_stop_time(ell,b, times):
