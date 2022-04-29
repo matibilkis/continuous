@@ -82,7 +82,7 @@ deter_data_h1_h0 = np.zeros((Ntraj, len(boundsB), len(indis)))##{indb:{ind:[] fo
 n=1
 ers = []
 for itraj in tqdm(range(1,Ntraj)):
-
+    
     log_lik_ratio, log_lik_ratio_swap = load_liks(itraj=itraj, mode=mode, dtt=dt, total_time_in=total_time)
     for indb,b in enumerate(boundsB):
         if b>=0:
