@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(add_help=False)
 parser.add_argument("--seed", type=int, default=10)
 parser.add_argument("--mode", type=str, default="damping")
 parser.add_argument("--dt", type=float, default=1e-6)
-parser.add_argument("--ppp", type=float, default=1e5)
+parser.add_argument("--ppp", type=float, default=1000)
 parser.add_argument("--total_time", type=float, default=50)
 
 args = parser.parse_args()

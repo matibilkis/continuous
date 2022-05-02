@@ -16,7 +16,6 @@ def give_ders(vx, vp, cvxp, gamma_val, omega_val, kappa_val,n_val, eta_val):
      -4*cvxp**2*eta_val*kappa_val - 2*cvxp*omega_val - gamma_val*vp + gamma_val*(n_val + 0.5) + kappa_val - 4*vp**2*eta_val*kappa_val,
      -cvxp*gamma_val - 4*cvxp*vp*eta_val*kappa_val - 4*cvxp*vx*eta_val*kappa_val + omega_val*vp - omega_val*vx]
 
-
 def IntegrationLoop(y0_hidden, y0_covhidden, y0_exp, times, dt):
     """
     dy = f(y,t) *dt + G(y,t) *dW
@@ -145,19 +144,19 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     path = get_path_config(total_time=total_time, dt=dt, itraj=itraj, exp_path=exp_path)
 
     os.makedirs(path, exist_ok=True)
-    
-    
+
+
     #indis = np.logspace(1,np.log10(len(times)-1), 1000)
     #indis = [int(k) for k in indis]
     #timind = [times[ind] for ind in indis]
     #logliks_short =  np.array([liks[ii] for ii in indis])
     np.save(path+"logliks",liks)#_short)
     #np.save(path+"times",timind)
-    
+
     #
     #if save_all == 1:
     #     np.save(path+"covs1",np.array(covs1 ))
-        
+
     #
         #p.save(path+"times",np.array(times ))
     #     np.save(path+"params",params)
@@ -177,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument("--itraj", type=int, default=1)
     parser.add_argument("--dt",type=float, default=1e-6)
     parser.add_argument("--ppp",type=float, default=1e5)
-    
+
     parser.add_argument("--total_time", type=float,default=4)
     parser.add_argument("--flip_params", type=int, default=0)
     parser.add_argument("--mode", type=str, default="frequencies")
