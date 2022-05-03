@@ -24,7 +24,7 @@ def give_def_params_discrimination(flip =0, mode="damping"):
         eta0 = eta1 = 1
         kappa0 = kappa1 = 1e6
         n0 = n1 = 1
-        omega0, omega1 = 1e4, 1e4 + 1e2
+        omega0, omega1 = 1e4, 1.05e4
     elif mode=="damping":
         #print("DAMPING DISCRIMINATION!")
         gamma1 = 14*2*np.pi
