@@ -86,10 +86,10 @@ def Ikpw(dW, h, n=5):
     return (A, I)
 
 @jit(nopython=True)
-def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m, covs):
+def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m):
     ##### covs is obtained through euler update (less memory consuming)
     fnh = f(Yn, t,dt)*dt # shape (d,)
-    xicov = Gn = G(covs, t)
+    xicov = Gn = G()#covs, t)
     sum1 = np.dot(Gn, Iij)/np.sqrt(dt) # shape (d, m)
 
     H20 = Yn + fnh # shape (d,)

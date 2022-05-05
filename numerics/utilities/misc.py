@@ -2,7 +2,7 @@ import numpy as np
 import ast
 import os
 
-def get_def_path(mode="discrimination/"):
+def get_def_path(mode="squeezing/"):
     import getpass
     user = getpass.getuser()
     if user == "cooper-cooper":
@@ -17,6 +17,28 @@ def get_def_path(mode="discrimination/"):
         mode+="/"
     defpath+=mode
     return defpath
+
+
+def give_def_params_discrimination_squeezing(flip = 0):
+
+    kappa1 = 1
+    xi1 = 0.49*kappa1
+    omega1 = 0.*kappa1
+    eta1 = 0.9
+
+    kappa0 = 1
+    xi0 = 0.1*kappa0
+    omega0 = 0.*kappa0
+    eta0 = 0.9
+
+    params0 = [xi0, kappa0, omega0, eta0]
+    params1 = [xi1, kappa1, omega1, eta1]
+
+    if flip==0:
+        return params1, params0#[xi1, kappa1, omega1, eta1], [xi1, kappa1, omega0, eta0]
+    else:
+        return params0, params1
+
 
 
 def give_def_params_discrimination(flip =0, mode="damping"):
