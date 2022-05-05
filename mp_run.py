@@ -7,7 +7,7 @@ cores = mp.cpu_count()
 
 mode="frequencies"
 dt = 1e-4
-total_time = 200.
+total_time = 20.
 ppp=5*1e3
 def int_seed(seed):
     for k in range(10):
@@ -17,4 +17,4 @@ def int_seed(seed):
 
 
 with mp.Pool(cores-2) as p:
-    p.map(int_seed, range(1,10000, 10))
+    p.map(int_seed, range(1,500, 10))

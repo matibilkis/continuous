@@ -151,6 +151,10 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     #timind = [times[ind] for ind in indis]
     #logliks_short =  np.array([liks[ii] for ii in indis])
     np.save(path+"logliks",liks)#_short)
+    np.save(path+"states1",np.array(states1 ))
+    np.save(path+"states0",np.array(states0 ))
+
+
     #np.save(path+"times",timind)
 
     #
@@ -160,11 +164,9 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     #
         #p.save(path+"times",np.array(times ))
     #     np.save(path+"params",params)
-    #     np.save(path+"states1",np.array(states1 ))
     #     np.save(path+"dys",np.array(dys ))
     #
     #     #np.save(path+"states1",np.array(states1 ))
-    #     np.save(path+"states0",np.array(states0 ))
     #     np.save(path+"covs0",np.array(covs0 ))
 
     # print("traj saved in {}\n save_all {}".format(path, save_all))
