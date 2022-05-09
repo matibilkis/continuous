@@ -48,6 +48,7 @@ def dot(a, b):
 
 ## rossler ##
 def Aterm(N, h, m, k, dW):
+    """kth term in the sum of Wiktorsson2001 equation (2.2)"""
     sqrt2h = np.sqrt(2.0/h)
     Xk = np.random.normal(0.0, 1.0, (N, m, 1))
     Yk = np.random.normal(0.0, 1.0, (N, m, 1))
@@ -58,6 +59,10 @@ def Aterm(N, h, m, k, dW):
 def Ikpw(dW, h, n=5):
     N = dW.shape[0]
     m = dW.shape[1]
+    if dW.ndim < 3:
+        dW = dW.reshape((N, -1, 1)) # change to array of shape (N, m, 1)
+    if dW.shape[2] != 1 or dW.ndim > 3:
+        raise(ValueError)
 
     A = Aterm(N, h, m, 1, dW)
     for k in range(2, n+1):
@@ -68,10 +73,10 @@ def Ikpw(dW, h, n=5):
     return (A, I)
 
 @jit(nopython=True)
-def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m, covs):
+def RosslerStep(t, Yn, Ik, Iij, dt, f,G, d, m):
     ##### covs is obtained through euler update (less memory consuming)
     fnh = f(Yn, t,dt)*dt # shape (d,)
-    xicov = Gn = G(covs, t)
+    xicov = Gn = G()#covs, t)
     sum1 = np.dot(Gn, Iij)/np.sqrt(dt) # shape (d, m)
 
     H20 = Yn + fnh # shape (d,)
