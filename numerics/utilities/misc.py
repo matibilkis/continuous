@@ -36,6 +36,15 @@ def get_path_config(total_time=10,dt=1e-3,itraj=1,exp_path="",ext_signal=1):
     return pp
 
 
+#### load_data
+
+def load(itraj = 1,total_time = 50., dt = 1e-3, exp_path="", ext_signal=1):
+    pp = get_path_config(total_time=total_time, dt=dt, itraj=itraj, exp_path = exp_path, ext_signal=ext_signal)
+    states = np.load(pp+"states.npy")
+    dys = np.load(pp+"dys.npy")
+    return states, dys
+
+
 
 
 

@@ -3,12 +3,19 @@ import sys
 sys.path.insert(0, os.getcwd())
 from numerics.utilities.misc import *
 from numerics.integration.steps import Ikpw, RosslerStep
+from numerics.integration.matrices import *
 import numpy as np
 from tqdm import tqdm
 import argparse
 import ast
 from numba import jit
 
+
+##### Notation#
+###   C = -Sqrt[2] B^T
+###   \Gamma =  - E^T/Sqrt[2]
+###   Xi(\Cov) = Cov C^T - \Gamma^T = (- Cov B + E)/Sqrt[2]
+##   Carefull that D changes also, so the ricatti equation is slightly different (factors \sqrt{2})
 
 def IntegrationLoop(S_hidden_in, times, dt):
     """
@@ -26,9 +33,8 @@ def IntegrationLoop(S_hidden_in, times, dt):
 
     for ind, t in enumerate(tqdm(times[:-1])):
         S_hidden[ind+1] = RosslerStep(t, S_hidden[ind], dW[ind], I[ind,:,:], dt, Fhidden, Ghidden, d, m) #update hidden state (w/ Robler method)
-        dy = -np.sqrt(2)*np.dot(B.T,S_hidden[ind])*dt + dW[ind] ## measurement outcome
+        dy = -np.sqrt(2)*np.dot(B.T,S_hidden[ind])*dt + proj_C.dot(dW[ind]) ## measurement outcome, pinv in case you homodyne
         dys.append(dy)
-    print(len(dys), len(S_hidden))
     return S_hidden, dys
 
 @jit(nopython=True)
@@ -45,7 +51,7 @@ def integrate(params=[], total_time=10, dt=1e-6, itraj=1, ext_signal=1, exp_path
     """
     h1 is the hypothesis i use to get the data. (with al the coefficients gamma1...)
     """
-    global  A, C, E, B, CovSS, XiCov, dW, Ext_signal_params
+    global  A, C, E, B, CovSS, XiCov, dW, Ext_signal_params, proj_C
 
     [xi, kappa, omega, eta] = params
     if ext_signal == 1:
@@ -53,24 +59,12 @@ def integrate(params=[], total_time=10, dt=1e-6, itraj=1, ext_signal=1, exp_path
     else:
         Ext_signal_params = np.array([0.,0.])
 
-    def give_matrices(xi, kappa, omega, eta):
-        A = np.array([[-(xi + .5*kappa), omega], [-omega, xi - 0.5*kappa]])
-        D = kappa*np.eye(2)
-        E = B = -np.sqrt(eta*kappa)*np.array([[1.,0.],[0.,0.]])
-        return A, D, E, B
-
 
     ### stationary state for the covariance
-    def stat(xi, kappa, omega, eta):
-        vx = (kappa*(2*eta -1) - 2*xi + np.sqrt(kappa**2 - 4*xi*kappa*(2*eta -1) + 4*xi**2))/(2*eta*kappa)
-        vp = kappa/(kappa - 2*xi)
-        return vx, vp
 
-    A, D, E, B = give_matrices(*params)
-    vx, vp = stat(*params)
-
-    CovSS = np.diag([vx, vp])
-    XiCov = (E - np.dot(CovSS, B))/np.sqrt(2)
+    A, D, E, B, proj_C = genoni_matrices(*params)
+    proj_C = np.linalg.pinv(B/np.sum(B))
+    XiCov = genoni_xi_cov(A,D,E,B, params)
 
     times = np.arange(0,total_time+dt,dt)
 
@@ -99,7 +93,7 @@ def integrate(params=[], total_time=10, dt=1e-6, itraj=1, ext_signal=1, exp_path
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--itraj", type=int, default=-1)
+    parser.add_argument("--itraj", type=int, default=1)
     parser.add_argument("--dt",type=float, default=1e-3)
     parser.add_argument("--total_time", type=float,default=4)
     parser.add_argument("--ext_signal", type=int, default=1)
