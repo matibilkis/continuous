@@ -24,15 +24,15 @@ def get_def_path(mode="ML_genoni/"):
 
 def def_params():
     kappa = 1
-    xi = .49*kappa
+    xi = .1*kappa
     omega = 0.*kappa
-    eta = 0.9
+    eta = 1
     params = [xi, kappa, omega, eta]
     exp_path = '{}/'.format(params)
     return params, exp_path
 
-def get_path_config(total_time=10,dt=1e-3,itraj=1,exp_path=""):
-    pp = get_def_path()+ exp_path +"{}itraj/T_{}_dt_{}/".format(itraj, total_time, dt)
+def get_path_config(total_time=10,dt=1e-3,itraj=1,exp_path="",ext_signal=1):
+    pp = get_def_path()+ exp_path +"{}itraj/T_{}_dt_{}_ext_signal_{}/".format(itraj, total_time, dt, ext_signal)
     return pp
 
 

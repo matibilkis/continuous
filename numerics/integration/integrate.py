@@ -35,19 +35,23 @@ def IntegrationLoop(S_hidden_in, times, dt):
 def Fhidden(s, t, dt):
     """
     """
-    return np.dot(A,s)
+    return np.dot(A,s) + Ext_signal_params[0]*np.sin(Ext_signal_params[1]*t)*np.array([1.,0.])
 
 @jit(nopython=True)
 def Ghidden():
     return XiCov
 
-def integrate(params=[], total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
+def integrate(params=[], total_time=10, dt=1e-6, itraj=1, ext_signal=1, exp_path="",**kwargs):
     """
     h1 is the hypothesis i use to get the data. (with al the coefficients gamma1...)
     """
-    global  A, C, E, B, CovSS, XiCov, dW
+    global  A, C, E, B, CovSS, XiCov, dW, Ext_signal_params
 
     [xi, kappa, omega, eta] = params
+    if ext_signal == 1:
+        Ext_signal_params = np.array([1e1,10*(2*np.pi/total_time)])
+    else:
+        Ext_signal_params = np.array([0.,0.])
 
     def give_matrices(xi, kappa, omega, eta):
         A = np.array([[-(xi + .5*kappa), omega], [-omega, xi - 0.5*kappa]])
@@ -76,7 +80,7 @@ def integrate(params=[], total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     s0_hidden = np.array([0.,0.])
 
     Xs, dys = IntegrationLoop(s0_hidden,  times, dt)
-    path = get_path_config(total_time=total_time, dt=dt, itraj=itraj, exp_path=exp_path)
+    path = get_path_config(total_time=total_time, dt=dt, itraj=itraj, exp_path=exp_path, ext_signal=ext_signal)
 
     os.makedirs(path, exist_ok=True)
     np.save(path+"dys",np.array(dys ))
@@ -95,15 +99,16 @@ def integrate(params=[], total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--itraj", type=int, default=1)
+    parser.add_argument("--itraj", type=int, default=-1)
     parser.add_argument("--dt",type=float, default=1e-3)
     parser.add_argument("--total_time", type=float,default=4)
-
+    parser.add_argument("--ext_signal", type=int, default=1)
     args = parser.parse_args()
 
     itraj = args.itraj ###this determines the seed
     total_time = args.total_time
     dt = args.dt
+    ext_signal = args.ext_signal
 
     params, exp_path = def_params()
     xi, kappa, omega, eta = params
@@ -114,4 +119,5 @@ if __name__ == "__main__":
                 dt = dt,
                 itraj=itraj,
                 exp_path = exp_path,
-                params = params)
+                params = params,
+                ext_signal=ext_signal)
