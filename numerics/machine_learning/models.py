@@ -3,7 +3,7 @@ import numpy as np
 from numerics.utilities.misc import *
 from numerics.integration.matrices import *
 import os
-
+from numerics.machine_learning.cell import Rcell
 
 
 class GRNNmodel(tf.keras.Model):
@@ -21,7 +21,7 @@ class GRNNmodel(tf.keras.Model):
         self.params = params
 
         self.x0 = tf.convert_to_tensor(np.array([[1.,0.]]).astype(np.float32))
-        self.cov_in = tf.convert_to_tensor(cov_in.astype(np.float32)))
+        self.cov_in = tf.convert_to_tensor(cov_in.astype(np.float32))
         self.dt = dt
 
         self.total_loss = Metrica(name="total_loss")
@@ -55,7 +55,7 @@ class GRNNmodel(tf.keras.Model):
             tape.watch(self.trainable_variables)
             preds = self(inputs)
             diff = tf.squeeze(preds - dys)
-            loss = #(tf.reduce_sum(tf.einsum('bj,bj->b',diff,diff)) - self.total_time)/(2*self.C_coeff*(self.dt**(3/2)))
+            loss = tf.reduce_sum(tf.einsum('bj,bj->b',diff,diff))# - self.total_time)/(2*self.C_coeff*(self.dt**(3/2)))
         grads = tape.gradient(loss, self.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.trainable_variables))
         self.total_loss.update_state(loss)
@@ -85,11 +85,11 @@ class Metrica(tf.keras.metrics.Metric):
         self.metric_variable = tf.convert_to_tensor(np.zeros((2,2)).astype(np.float32))
 
 
-class CustomCallback(tf.keras.callbacks.Callback):
-    def on_epoch_end(self, epoch, logs=None):
-        keys = list(logs.keys())
-        histories = self.model.history.history
-        keys_histories = list(histories.keys())
-        for k,v, in histories.items():
-            np.save(self.model.train_path+"{}".format(k), v, allow_pickle=True)
-        print("End epoch {} of training; got log keys: {}".format(epoch, keys))
+# class CustomCallback(tf.keras.callbacks.Callback):
+#     def on_epoch_end(self, epoch, logs=None):
+#         keys = list(logs.keys())
+#         histories = self.model.history.history
+#         keys_histories = list(histories.keys())
+#         for k,v, in histories.items():
+#             np.save(self.model.train_path+"{}".format(k), v, allow_pickle=True)
+#         print("End epoch {} of training; got log keys: {}".format(epoch, keys))

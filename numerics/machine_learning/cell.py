@@ -23,6 +23,7 @@ class Rcell(tf.keras.layers.Layer):
         self.XiCovC = np.dot(self.XiCov,-np.sqrt(2)*self.B_matrix.T)
         self.w=1### 2 otherwise
 
+        self.true_target_params = np.array(true_target_params).astype(np.float32)
 
 
     def build(self, input_shape):
@@ -30,7 +31,7 @@ class Rcell(tf.keras.layers.Layer):
                                       initializer='uniform',
                                       name='kernel')
         omega = self.omega
-        self.target_params[0].assign( true_target_params.astype(np.float32)/10.)
+        self.target_params[0].assign( self.true_target_params/10.)
         self.built = True
 
     def call(self, inputs, states):

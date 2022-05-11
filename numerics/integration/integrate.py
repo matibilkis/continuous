@@ -41,7 +41,7 @@ def IntegrationLoop(S_hidden_in, times, dt):
 def Fhidden(s, t, dt):
     """
     """
-    return np.dot(A,s) + Ext_signal_params[0]*np.sin(Ext_signal_params[1]*t)*np.array([1.,0.])
+    return np.dot(A,s) + Ext_signal_params[0]*np.cos(Ext_signal_params[1]*t)*np.array([1.,0.])
 
 @jit(nopython=True)
 def Ghidden():
@@ -62,7 +62,7 @@ def integrate(params=[], total_time=10, dt=1e-6, itraj=1, ext_signal=1, exp_path
 
     ### stationary state for the covariance
 
-    A, D, E, B, proj_C = genoni_matrices(*params)
+    A, D, E, B = genoni_matrices(*params)
     proj_C = np.linalg.pinv(B/np.sum(B))
     XiCov = genoni_xi_cov(A,D,E,B, params)
 
