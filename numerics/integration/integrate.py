@@ -41,7 +41,7 @@ def IntegrationLoop(S_hidden_in, times, dt):
 def Fhidden(s, t, dt):
     """
     """
-    return np.dot(A,s) + Ext_signal_params[0]*np.cos(Ext_signal_params[1]*t)*np.array([1.,0.])
+    return np.dot(A,s) + Ext_signal_params[0]#*np.cos(Ext_signal_params[1]*t)*np.array([1.,0.])
 
 @jit(nopython=True)
 def Ghidden():

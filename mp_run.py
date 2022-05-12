@@ -8,7 +8,7 @@ total_time = 100.
 dt = 1e-4
 
 def int_seed(seed):
-    for ext_signal in [0,1]:
+    for ext_signal in [1]:
         os.system("python3 numerics/integration/integrate.py --itraj {} --total_time {} --dt {} --ext_signal {}".format(seed, total_time, dt, ext_signal))
         print(f"{seed}, done")
 
