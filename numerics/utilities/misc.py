@@ -10,11 +10,16 @@ def get_time(total_time, dt):
 
 def get_def_path(mode="ML_genoni/"):
     import getpass
-    user = getpass.getuser()
+    try:
+        user = getpass.getuser()
+    except Exception:
+        user = "giq"
     if user == "cooper-cooper":
         defpath = '../quantera/trajectories/'
-    elif (user =="matias") or (user == "mati") or (user=="giq"):
+    elif (user =="matias") or (user == "mati"):# or (user=="giq"):
         defpath = '../quantera/trajectories/'
+    elif (user=="giq"):
+        defpath = "/media/giq/Nuevo vol/quantera/trajectories/"
     else:
         defpath = "/data/uab-giq/scratch/matias/quantera/trajectories/"
     if mode[-1] != "/":

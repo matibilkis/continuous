@@ -1,14 +1,24 @@
 import os
 import sys
-sys.path.insert(0, os.getcwd())
-import numpy as np
-from tqdm import tqdm
 from numerics.utilities.misc import *
-import tensorflow as tf
-import argparse
-from numerics.machine_learning.RNN_models import *
 from numerics.integration.matrices import *
-from datetime import datetime
+import tensorflow as tf
+
+sys.path.insert(0, os.getcwd())
+
+params, exp_path = def_params()
+total_time = 100.
+dt = 1e-4
+states_si, dys_si = load(itraj=1, exp_path=exp_path, total_time=total_time, dt=dt, ext_signal=1)
+#tfsignals = tf.convert_to_tensor(dys_si.astype(np.float32)[tf.newaxis])
+times = get_time(total_time,dt).astype(np.float32)
+dd = tf.unstack(dys_si.astype(np.float32),axis=1)
+
+tfsignals = tf.stack([times[:-1],dd[0], dd[1]])
+tfsignals = tf.transpose(tfsignals)[tf.newaxis]
+
+tfsignals = tfsignals[:,::1000,:]
+
 
 st = datetime.now()
 defpath = get_def_path()
