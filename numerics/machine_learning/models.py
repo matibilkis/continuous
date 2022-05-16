@@ -13,8 +13,7 @@ class GRCell(tf.keras.layers.Layer):
                 initial_parameters=np.zeros(2).astype(np.float32),
                 true_parameters=np.zeros(2).astype(np.float32),
                 cov_in = np.zeros((2,2)).astype(np.float32),
-                initial_states = np.array([[20., 20., 0, 0, 0,]]).astype(np.float32),
-                 #inn_state=np.zeros(5).astype(np.float32),
+                initial_states = np.zeros((1,5)).astype(np.float32), ##this accounts for
                 **kwargs):
 
         self.units = units
@@ -70,19 +69,18 @@ class GRCell(tf.keras.layers.Layer):
 
     def reset_states(self,inputs=None, batch_size=1, dtype=np.float32):
         return self.initial_states
-        #return tf.zeros( tuple([batch_size]) + tuple([self.state_size]), dtype=dtype)
-
 
 
 class Model(tf.keras.Model):
-    #https://stackoverflow.com/questions/57860614/specifying-the-batch-size-when-subclassing-keras-model   ##Thanks :)
-    ### workarounds: batch_input_shape=batch_size and building..
+
     def __init__(self,stateful=True, params=[], dt=1e-4,
                 true_parameters=[],
-                initial_parameters=[], cov_in=np.zeros((2,2)),
+                initial_parameters=[], cov_in=np.zeros((2,2)), initial_states = np.zeros((1,5)).astype(np.float32),
                 batch_size=(10), **kwargs):
         super(Model,self).__init__()
-        self.recurrent_layer =tf.keras.layers.RNN(GRCell(units=5, params=params, dt=dt, true_parameters=true_parameters, initial_parameters=initial_parameters, cov_in = cov_in),
+        self.recurrent_layer =tf.keras.layers.RNN(GRCell(units=5, params=params, dt=dt, true_parameters=true_parameters,
+                                                    initial_parameters=initial_parameters,
+                                                    initial_states=initial_states,cov_in = cov_in),
                                       return_sequences=True, stateful=True,  batch_input_shape=batch_size)
         self.total_loss = Metrica(name="LOSS")
         self.target_params_record = Metrica(name="PARAMS")
@@ -101,7 +99,7 @@ class Model(tf.keras.Model):
     @tf.function
     def train_step(self, data):
         inputs, times_dys = data
-        dys = times_dys[:,:,1:] ###recall first entry is time, then signals
+        dys = times_dys[:,:,1:]
         with tf.GradientTape() as tape:
             tape.watch(self.trainable_variables)
             preds = self(inputs)

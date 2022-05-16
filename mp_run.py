@@ -4,8 +4,8 @@ from numerics.utilities.misc import *
 
 
 cores = mp.cpu_count()
-total_time = 2000
-dt = 1e-1
+total_time = 100.
+dt = 1e-3
 
 def int_seed(seed):
     for ext_signal in [1]:
