@@ -33,7 +33,7 @@ def IntegrationLoop(S_hidden_in, times, dt):
 
     for ind, t in enumerate(tqdm(times[:-1])):
         S_hidden[ind+1] = RosslerStep(t, S_hidden[ind], dW[ind], I[ind,:,:], dt, Fhidden, Ghidden, d, m) #update hidden state (w/ Robler method)
-        dy = -np.sqrt(2)*np.dot(B.T,S_hidden[ind])*dt + proj_C.dot(dW[ind]) ## measurement outcome, pinv in case you homodyne
+        dy = -np.sqrt(2)*np.dot(B.T,S_hidden[ind])*dt #+ proj_C.dot(dW[ind]) ## measurement outcome, pinv in case you homodyne
         dys.append(dy)
     return S_hidden, dys
 
@@ -71,7 +71,7 @@ def integrate(params=[], total_time=10, dt=1e-6, itraj=1, ext_signal=1, exp_path
     #### generate trajectory of noises
     np.random.seed(itraj)
     dW = np.sqrt(dt)*np.random.randn(len(times),2)
-    s0_hidden = np.array([0.,0.])
+    s0_hidden = np.array([20.,0.])
 
     Xs, dys = IntegrationLoop(s0_hidden,  times, dt)
     path = get_path_config(total_time=total_time, dt=dt, itraj=itraj, exp_path=exp_path, ext_signal=ext_signal)

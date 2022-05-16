@@ -13,6 +13,7 @@ class GRCell(tf.keras.layers.Layer):
                 initial_parameters=np.zeros(2).astype(np.float32),
                 true_parameters=np.zeros(2).astype(np.float32),
                 cov_in = np.zeros((2,2)).astype(np.float32),
+                initial_states = np.array([[20., 20., 0, 0, 0,]]).astype(np.float32),
                  #inn_state=np.zeros(5).astype(np.float32),
                 **kwargs):
 
@@ -31,6 +32,7 @@ class GRCell(tf.keras.layers.Layer):
         self.x_signal = tf.convert_to_tensor(np.array([1.,0.]).astype(np.float32))
         self.true_parameters = tf.convert_to_tensor(true_parameters.astype(np.float32))
 
+        self.initial_states = tf.convert_to_tensor(initial_states)
         super(GRCell, self).__init__(**kwargs)
 
 
@@ -63,10 +65,12 @@ class GRCell(tf.keras.layers.Layer):
         self.built = True
 
     def get_initial_state(self,inputs=None, batch_size=1, dtype=np.float32):
-        return tf.zeros( tuple([batch_size]) + tuple([self.state_size]), dtype=dtype)
+        #return tf.zeros( tuple([batch_size]) + tuple([self.state_size]), dtype=dtype)
+        return self.initial_states
 
     def reset_states(self,inputs=None, batch_size=1, dtype=np.float32):
-        return tf.zeros( tuple([batch_size]) + tuple([self.state_size]), dtype=dtype)
+        return self.initial_states
+        #return tf.zeros( tuple([batch_size]) + tuple([self.state_size]), dtype=dtype)
 
 
 
@@ -86,11 +90,13 @@ class Model(tf.keras.Model):
     def call(self, inputs):
         return self.recurrent_layer(inputs)
 
+    def reset_states(self,states=None):
+        self.recurrent_layer.states[0].assign(self.recurrent_layer.cell.get_initial_state())
+        return self.recurrent_layer.cell.get_initial_state()
 
     @property
     def metrics(self):
         return [self.total_loss, self.target_params_record, self.gradient_history]
-
 
     @tf.function
     def train_step(self, data):

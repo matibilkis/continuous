@@ -29,7 +29,7 @@ def get_def_path(mode="ML_genoni/"):
 
 def def_params():
     kappa = 1
-    xi = .1*kappa
+    xi =0. #.1*kappa
     omega = 0.*kappa
     eta = 1
     params = [xi, kappa, omega, eta]

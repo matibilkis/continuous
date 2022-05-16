@@ -7,8 +7,6 @@ def genoni_matrices(xi, kappa, omega, eta, **kwargs):
     E = B = -np.sqrt(eta*kappa)*np.array([[1.,0.],[0.,0.]])
     if str(type)=="32":
         A, D, E, B = A.astype(np.float32), D.astype(np.float32), E.astype(np.float32), B.astype(np.float32)
-        #for k in [A, D, E, B]:
-        #    k = k.astype("float32")
     return A, D, E, B
 
 
