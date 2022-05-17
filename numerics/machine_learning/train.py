@@ -66,7 +66,8 @@ total_time,dt = total_time*kappa, kappa*dt
 states,signals = load(itraj=1, exp_path=exp_path, total_time=total_time, dt=dt, ext_signal=1)
 tfsignals = pre_process_data_for_ML(total_time, dt, signals)
 
-save_dir = get_path_config(exp_path=exp_path,total_time = total_time, dt = dt, itraj=itraj, ext_signal=1)+"training_{}/".format(train_id)
+
+save_dir = get_training_save_dir(exp_path, total_time, dt, itraj,train_id)
 os.makedirs(save_dir, exist_ok=True)
 
 
@@ -75,7 +76,7 @@ os.makedirs(save_dir, exist_ok=True)
 
 ### initialize parameters
 f = 2*np.pi
-initial_parameters = np.array([10., .1*f]).astype(np.float32)
+initial_parameters = np.array([1., .1*f]).astype(np.float32)
 true_parameters = np.array([10., f]).astype(np.float32)
 
 A, D , E, B  = genoni_matrices(*params)
