@@ -54,8 +54,9 @@ def integrate(params=[], total_time=10, dt=1e-6, itraj=1, ext_signal=1, exp_path
     global  A, C, E, B, CovSS, XiCov, dW, Ext_signal_params, proj_C
 
     [xi, kappa, omega, eta] = params
+    Np = 100
     if ext_signal == 1:
-        Ext_signal_params = np.array([1e1,2*np.pi])
+        Ext_signal_params = np.array([1e1,2*np.pi/(100/Np)])
     else:
         Ext_signal_params = np.array([0.,0.])
 
