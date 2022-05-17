@@ -53,7 +53,7 @@ class GRCell(tf.keras.layers.Layer):
         new_cov = cov + cov_dt*self.dt
 
         new_states = tf.concat([x, tf.zeros((1,3))],axis=-1)
-        return output, [new_states]
+        return output, [new_states]####
 
 
     def build(self, input_shape):
