@@ -40,6 +40,8 @@ parser.add_argument("--total_time", type=float,default=100.)
 parser.add_argument("--dt",type=float, default=1e-3)
 parser.add_argument("--trainid", type=int, default=0)
 parser.add_argument("--epochs", type=int, default=10)
+parser.add_argument("--batch_size", type=int, default=100)
+parser.add_argument("--learning_rate",type=float, default=1e-3)
 
 args = parser.parse_args()
 
@@ -49,7 +51,8 @@ itraj = args.itraj
 train_id = args.trainid
 epochs = args.epochs
 dt = args.dt
-
+batch_size = args.batch_size
+learning_rate = args.learning_rate
 
 tf.random.set_seed(train_id)
 np.random.seed(train_id)
@@ -71,12 +74,17 @@ os.makedirs(save_dir, exist_ok=True)
 
 
 ### initialize parameters
-initial_parameters = np.array([10., 100*2*np.pi/10]).astype(np.float32)
-true_parameters = np.array([10., 100*2*np.pi/10]).astype(np.float32)
+initial_parameters = np.array([10., 2*np.pi/total_time]).astype(np.float32)
+true_parameters = np.array([10., 4*2*np.pi/total_time]).astype(np.float32)
 
 A, D , E, B  = genoni_matrices(*params)
 xicov, covss = genoni_xi_cov(A,D, E, B ,params, stat=True)
 
+
+
+with open(save_dir+"training_details.txt", 'w') as f:
+    f.write("BS: {}\nepochs: {}\n learning_rate: {}\n".format(batch_size, epochs, learning_rate))
+f.close()
 
 
 BS = 1
@@ -86,10 +94,19 @@ model = Model(params=params, dt=dt, initial_parameters=initial_parameters,
               cov_in=covss, batch_size=tuple([None,None,3]),
               save_dir = save_dir)
 model.recurrent_layer.build(tf.TensorShape(batch_shape))
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-2))
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate))
 
-history = model.craft_fit(tfsignals, batch_size=500, epochs=10, early_stopping=1e-8)
+history = model.craft_fit(tfsignals, batch_size=batch_size, epochs=epochs, early_stopping=1e-8)
 
+
+with open(save_dir+"training_details.txt", 'w') as f:
+    f.write("BS: {}\nepochs: {}\n learning_rate: {}".format(batch_size, epochs, learning_rate))
+f.close()
+
+
+with open(save_dir+"training_details.txt", 'w') as f:
+    f.write("training time: "+str(datetime.now() - st))
+f.close()
 
 
 #
@@ -113,7 +130,3 @@ history = model.craft_fit(tfsignals, batch_size=500, epochs=10, early_stopping=1
 #                                                                                    min_delta=0, patience=200,
 #                                                                                    verbose=0,
 #                                                                                    mode='min')])
-# with open(rmod.train_path+"training_details.txt", 'w') as f:
-#     f.write(str(rmod.optimizer.get_config()))
-#     f.write("training time: "+str(datetime.now() - st))
-# f.close()

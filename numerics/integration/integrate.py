@@ -33,7 +33,7 @@ def IntegrationLoop(S_hidden_in, times, dt):
 
     for ind, t in enumerate(tqdm(times[:-1])):
         S_hidden[ind+1] = RosslerStep(t, S_hidden[ind], dW[ind], I[ind,:,:], dt, Fhidden, Ghidden, d, m) #update hidden state (w/ Robler method)
-        dy = -np.sqrt(2)*np.dot(B.T,S_hidden[ind])*dt + 0.*proj_C.dot(dW[ind]) ## measurement outcome, pinv in case you homodyne
+        dy = -np.sqrt(2)*np.dot(B.T,S_hidden[ind])*dt + proj_C.dot(dW[ind]) ## measurement outcome, pinv in case you homodyne
         dys.append(dy)
     return S_hidden, dys
 
@@ -55,7 +55,7 @@ def integrate(params=[], total_time=10, dt=1e-6, itraj=1, ext_signal=1, exp_path
 
     [xi, kappa, omega, eta] = params
     if ext_signal == 1:
-        Ext_signal_params = np.array([1e1,4*(2*np.pi/total_time)])
+        Ext_signal_params = np.array([1e1,2*np.pi])
     else:
         Ext_signal_params = np.array([0.,0.])
 

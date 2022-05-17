@@ -32,6 +32,7 @@ class GRCell(tf.keras.layers.Layer):
         self.true_parameters = tf.convert_to_tensor(true_parameters.astype(np.float32))
 
         self.initial_states = tf.convert_to_tensor(initial_states)
+        self.ss = []
         super(GRCell, self).__init__(**kwargs)
 
 
@@ -40,13 +41,14 @@ class GRCell(tf.keras.layers.Layer):
         time, dy = inns[0], inns[1:][tf.newaxis]
 
         sts = states[0][:,:2]
+        self.ss.append(sts)
         cov = self.cov_in
 
         XiCov = (self.E_matrix - tf.einsum('bij,jk->bik',cov,self.B_matrix))/np.sqrt(2)
         XiCovC = tf.matmul(XiCov,-np.sqrt(2)*self.B_matrix.T)
 
         output = tf.einsum('ij,bj->bi',-np.sqrt(2)*self.B_matrix.T, sts)*self.dt
-        dx = tf.einsum('bij,bj->bi',self.A_matrix - XiCovC, sts)*self.dt + tf.einsum('bij,bj->bi', XiCov, dy) + self.training_params[0][0]*tf.cos(self.training_params[0][1]*time)*self.dt*self.x_signal ##  + params...
+        dx = tf.einsum('bij,bj->bi',self.A_matrix - XiCovC, sts)*self.dt + tf.einsum('bij,bj->bi', XiCov, dy) + 10.*tf.cos(self.training_params[0][1]*time)*self.dt*self.x_signal ##  + params...
         x = sts + dx
 
         cov_dt = tf.einsum('ij,bjk->bik',self.A_matrix,cov) + tf.einsum('bij,jk->bik',cov, tf.transpose(self.A_matrix)) + self.D_matrix - 2*tf.einsum('bij,bjk->bik',XiCov, tf.transpose(XiCov, perm=[0,2,1]))
