@@ -8,6 +8,7 @@ def ct(A):
 def get_time(total_time, dt):
     return np.arange(0, total_time+dt, dt)
 
+
 def get_def_path(mode="ML_genoni/Exp0/"):
     import getpass
     try:
@@ -26,6 +27,39 @@ def get_def_path(mode="ML_genoni/Exp0/"):
         mode+="/"
     defpath+=mode
     return defpath
+
+def external_function(EXP="EXP0", mode="np"):
+    global ext_fun
+    if mode=="np":
+        if EXP.upper() =="EXP0":
+            def ext_fun(params,**kwargs):
+                return params[0][0]
+        elif EXP.upper() == "EXP1":
+            def ext_fun(params,**kwargs):
+                t = kwargs.get("t",0.)
+                return params[0][0]*t
+        elif EXP.upper() == "EXP2":
+            def ext_fun(params,**kwargs):
+                t = kwargs.get("t",0.)
+                return params[0][0]*np.cos(params[0][1]*t)
+    else:
+        if EXP.upper() =="EXP0":
+            def ext_fun(params,**kwargs):
+                return params[0][0]
+        elif EXP.upper() == "EXP1":
+            def ext_fun(params,**kwargs):
+                t = kwargs.get("t",0.)
+                return params[0][0]*t
+        elif EXP.upper() == "EXP2":
+            def ext_fun(params,**kwargs):
+                t = kwargs.get("t",0.)
+                return params[0][0]*tf.cos(params[0][1]*t)
+    return ext_fun
+
+
+
+
+
 
 def def_params():
     kappa = 1

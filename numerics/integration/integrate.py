@@ -41,7 +41,7 @@ def IntegrationLoop(S_hidden_in, times, dt):
 def Fhidden(s, t, dt):
     """
     """
-    return np.dot(A,s) + Ext_signal_params[0]*t#np.cos(Ext_signal_params[1]*t)*np.array([1.,0.]).astype(np.float32)
+    return np.dot(A,s) + ext_fun(Ext_signal_params, t)*np.array([1.,0.]).astype(np.float32)
 
 @jit(nopython=True)
 def Ghidden():
@@ -109,6 +109,9 @@ if __name__ == "__main__":
     xi, kappa, omega, eta = params
 
     total_time,dt = total_time*kappa, kappa*dt
+
+    global ext_fun
+    ext_fun = external_function(mode="np")
 
     integrate(total_time = total_time,
                 dt = dt,
