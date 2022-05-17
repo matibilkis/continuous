@@ -46,7 +46,7 @@ class GRCell(tf.keras.layers.Layer):
         XiCovC = tf.matmul(XiCov,-np.sqrt(2)*self.B_matrix.T)
 
         output = tf.einsum('ij,bj->bi',-np.sqrt(2)*self.B_matrix.T, sts)*self.dt
-        dx = tf.einsum('bij,bj->bi',self.A_matrix - XiCovC, sts)*self.dt + tf.einsum('bij,bj->bi', XiCov, dy) + self.training_params[0][0]*self.dt#tf.cos(self.true_parameters[1]*time)*self.dt*self.x_signal ##  + params...
+        dx = tf.einsum('bij,bj->bi',self.A_matrix - XiCovC, sts)*self.dt + tf.einsum('bij,bj->bi', XiCov, dy) + self.training_params[0][0]*tf.cos(self.training_params[0][1]*time)*self.dt*self.x_signal ##  + params...
         x = sts + dx
 
         cov_dt = tf.einsum('ij,bjk->bik',self.A_matrix,cov) + tf.einsum('bij,jk->bik',cov, tf.transpose(self.A_matrix)) + self.D_matrix - 2*tf.einsum('bij,bjk->bik',XiCov, tf.transpose(XiCov, perm=[0,2,1]))
@@ -78,6 +78,8 @@ class Model(tf.keras.Model):
                 initial_parameters=[], cov_in=np.zeros((2,2)), initial_states = np.zeros((1,5)).astype(np.float32),
                 batch_size=(10), **kwargs):
         super(Model,self).__init__()
+
+        save_dir = kwargs.get("save_dir","/")
         self.recurrent_layer =tf.keras.layers.RNN(GRCell(units=5, params=params, dt=dt, true_parameters=true_parameters,
                                                     initial_parameters=initial_parameters,
                                                     initial_states=initial_states,cov_in = cov_in),
@@ -85,6 +87,8 @@ class Model(tf.keras.Model):
         self.total_loss = Metrica(name="LOSS")
         self.target_params_record = Metrica(name="PARAMS")
         self.gradient_history = Metrica(name="GRADS")
+        self.save_dir = save_dir
+
     def call(self, inputs):
         return self.recurrent_layer(inputs)
 
@@ -113,6 +117,37 @@ class Model(tf.keras.Model):
         self.gradient_history.update_state(grads)
 
         return {k.name:k.result() for k in self.metrics}
+
+
+    def craft_fit(self, tfsignals, batch_size=50, epochs=10,early_stopping=1e-6):
+        if tfsignals.shape[1]%batch_size != 0:
+            raise ValueError("check your batch_size and training set, i can't split that")
+        Ns = tfsignals.shape[1]/batch_size
+        batched_data  = tf.split(tfsignals, int(Ns), axis=1)
+
+        history = []
+        for epoch in range(epochs):
+            self.reset_states()
+            for batch in batched_data:
+                bb = self.train_step((batch,batch))
+                history+=[bb]
+            loss =  np.squeeze(bb["LOSS"].numpy())
+            params =  np.squeeze(bb["PARAMS"].numpy())
+            grads = np.squeeze(bb["GRADS"].numpy())
+            print("\r EPOCH {}/{}   loss:{}    initial_params   {}    params{}    true_params {}    grads{}".format(epoch, epochs,loss,np.round(self.recurrent_layer.cell.initial_parameters,2), np.round(params,2), np.round(self.recurrent_layer.cell.true_parameters,2), np.round(grads,3)),end="")
+
+            loss_save = [history[k]["LOSS"].numpy() for k in range(len(history))]
+            grads_save = np.squeeze([history[k]["GRADS"].numpy() for k in range(len(history))])
+            params_save = np.squeeze([history[k]["PARAMS"].numpy() for k in range(len(history))])
+
+            for i,j in zip([loss_save, grads_save, params_save], ["loss", "grads", "params"]):
+                np.save(self.save_dir+j,i)
+
+            if loss<early_stopping:
+                print("Early stopped at loss {}".format(loss))
+                break
+        return history
+
 
 class Metrica(tf.keras.metrics.Metric):
     """

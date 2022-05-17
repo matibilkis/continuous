@@ -8,7 +8,7 @@ def ct(A):
 def get_time(total_time, dt):
     return np.arange(0, total_time+dt, dt)
 
-def get_def_path(mode="ML_genoni/"):
+def get_def_path(mode="ML_genoni/Exp1/"):
     import getpass
     try:
         user = getpass.getuser()
