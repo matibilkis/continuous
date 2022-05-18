@@ -10,7 +10,7 @@ def get_time(total_time, dt):
     return np.arange(0, total_time+dt, dt)
 
 
-def get_def_path(mode="ML_genoni/Exp0/"):
+def get_def_path(mode="ML_genoni/Exp1/"):
     import getpass
     try:
         user = getpass.getuser()
@@ -65,7 +65,7 @@ def external_function(EXP="EXP0", mode="np"):
 
 
 def def_params():
-    kappa = 1
+    kappa = 1.
     xi =0. #.1*kappa
     omega = 0.*kappa
     eta = 1

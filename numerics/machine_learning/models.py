@@ -37,7 +37,7 @@ class GRCell(tf.keras.layers.Layer):
         super(GRCell, self).__init__(**kwargs)
 
     def ext_fun(self, params,t):
-        return params[0]*t
+        return params[0]*tf.cos(params[1]*t)
 
     def call(self, inputs, states):
         inns = tf.squeeze(inputs)

@@ -4,7 +4,7 @@ from numerics.utilities.misc import *
 
 
 cores = mp.cpu_count()
-total_time = 100.
+total_time = 10.
 dt = 1e-3
 
 def int_seed(seed):

@@ -46,12 +46,17 @@ def plot_history(logs=None, from_loss=False, data=None, preds=None, signals=None
 
     ax1.set_title("LOSS")
     ax1.plot(history_loss)
-    ax1.loglog()
+    ax1.set_yscale("log")
     ax1.set_xlabel("GRADIENT STEP")
 
     ax2.set_title("PARAMS")
-    ax2.plot(params[:,0],label="RNN")
+    ax2.plot(params[:,0],label="RNN -p0")
+    ax2.plot(params[:,1],label="RNN -p1")
+
     ax2.plot(np.ones(len(params))*true_parameters[0], '--',label="true")
+    ax2.plot(np.ones(len(params))*true_parameters[1], '--',label="true")
+
+    ax2.set_yscale("log")
     ax2.set_xlabel("GRADIENT STEP")
     ax2.legend()
 

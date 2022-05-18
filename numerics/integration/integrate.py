@@ -39,7 +39,7 @@ def IntegrationLoop(S_hidden_in, times, dt):
 
 @jit(nopython=True)
 def ext_fun(params, t):
-    return params[0]*t
+    return params[0]*np.cos(params[1]*t)
 
 @jit(nopython=True)
 def Fhidden(s, t, dt):
@@ -59,8 +59,9 @@ def integrate(params=[], total_time=10, dt=1e-6, itraj=1, ext_signal=1, exp_path
 
     [xi, kappa, omega, eta] = params
     Np = 100
+    ### w = 2*pi*N/t  (t total time)
     if ext_signal == 1:
-        Ext_signal_params = np.array([1e1,2*np.pi/(100/Np)])
+        Ext_signal_params = np.array([1e4,2*np.pi])
     else:
         Ext_signal_params = np.array([0.,0.])
 

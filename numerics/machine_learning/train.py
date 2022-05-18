@@ -76,8 +76,8 @@ os.makedirs(save_dir, exist_ok=True)
 
 ### initialize parameters
 f = 2*np.pi
-initial_parameters = np.array([1., .1*f]).astype(np.float32)
-true_parameters = np.array([10., f]).astype(np.float32)
+initial_parameters = np.array([1e4, np.pi]).astype(np.float32)
+true_parameters = np.array([1e4, 2*np.pi]).astype(np.float32)
 
 A, D , E, B  = genoni_matrices(*params)
 xicov, covss = genoni_xi_cov(A,D, E, B ,params, stat=True)
