@@ -41,7 +41,7 @@ parser.add_argument("--dt",type=float, default=1e-3)
 parser.add_argument("--trainid", type=int, default=0)
 parser.add_argument("--epochs", type=int, default=10)
 parser.add_argument("--batch_size", type=int, default=100)
-parser.add_argument("--learning_rate",type=float, default=1e-3)
+parser.add_argument("--learning_rate",type=float, default=1e0)
 
 args = parser.parse_args()
 
@@ -60,6 +60,7 @@ np.random.seed(train_id)
 
 params, exp_path = def_params()
 xi, kappa, omega, eta = params
+print(params, total_time)
 
 total_time,dt = total_time*kappa, kappa*dt
 
@@ -76,7 +77,7 @@ os.makedirs(save_dir, exist_ok=True)
 
 ### initialize parameters
 f = 2*np.pi
-initial_parameters = np.array([1e4, np.pi]).astype(np.float32)
+initial_parameters = np.array([.9*1e4, 1.95*np.pi]).astype(np.float32)
 true_parameters = np.array([1e4, 2*np.pi]).astype(np.float32)
 
 A, D , E, B  = genoni_matrices(*params)
