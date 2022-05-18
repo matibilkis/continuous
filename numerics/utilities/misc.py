@@ -1,6 +1,7 @@
 import numpy as np
 import ast
 import os
+from numba import jit
 
 def ct(A):
     return np.transpose(np.conjugate(A))
@@ -32,6 +33,8 @@ def external_function(EXP="EXP0", mode="np"):
     global ext_fun
     if mode=="np":
         if EXP.upper() =="EXP0":
+
+            @jit(nopython=True)
             def ext_fun(params,**kwargs):
                 return params[0][0]
         elif EXP.upper() == "EXP1":
