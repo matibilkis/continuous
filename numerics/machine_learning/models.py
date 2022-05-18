@@ -19,10 +19,6 @@ class GRCell(tf.keras.layers.Layer):
         self.units = units
         self.state_size = units   ### this means that the internal state is a "units"-dimensional vector
 
-
-        external_function(mode="tf")
-
-
         self.xi, self.kappa, self.omega, self.eta = params
         self.dt = dt
         self.A_matrix, self.D_matrix, self.E_matrix, self.B_matrix = genoni_matrices(*params, type="32")
@@ -40,6 +36,8 @@ class GRCell(tf.keras.layers.Layer):
 
         super(GRCell, self).__init__(**kwargs)
 
+    def ext_fun(self, params,t):
+        return params[0]*t
 
     def call(self, inputs, states):
         inns = tf.squeeze(inputs)
@@ -53,7 +51,7 @@ class GRCell(tf.keras.layers.Layer):
         XiCovC = tf.matmul(XiCov,-np.sqrt(2)*self.B_matrix.T)
 
         output = tf.einsum('ij,bj->bi',-np.sqrt(2)*self.B_matrix.T, sts)*self.dt
-        dx = tf.einsum('bij,bj->bi',self.A_matrix - XiCovC, sts)*self.dt + tf.einsum('bij,bj->bi', XiCov, dy) + ext_fun(self.training_params[0], t=time)*self.x_signal*self.dt ##  + params...
+        dx = tf.einsum('bij,bj->bi',self.A_matrix - XiCovC, sts)*self.dt + tf.einsum('bij,bj->bi', XiCov, dy) + self.ext_fun(self.training_params[0], t=time)*self.x_signal*self.dt ##  + params...
         x = sts + dx
 
         cov_dt = tf.einsum('ij,bjk->bik',self.A_matrix,cov) + tf.einsum('bij,jk->bik',cov, tf.transpose(self.A_matrix)) + self.D_matrix - 2*tf.einsum('bij,bjk->bik',XiCov, tf.transpose(XiCov, perm=[0,2,1]))

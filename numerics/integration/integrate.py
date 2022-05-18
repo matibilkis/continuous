@@ -38,6 +38,10 @@ def IntegrationLoop(S_hidden_in, times, dt):
     return S_hidden, dys
 
 @jit(nopython=True)
+def ext_fun(params, t):
+    return params[0]*t
+
+@jit(nopython=True)
 def Fhidden(s, t, dt):
     """
     """
@@ -109,9 +113,6 @@ if __name__ == "__main__":
     xi, kappa, omega, eta = params
 
     total_time,dt = total_time*kappa, kappa*dt
-
-    global ext_fun
-    ext_fun = external_function(mode="np")
 
     integrate(total_time = total_time,
                 dt = dt,
