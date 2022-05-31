@@ -10,7 +10,7 @@ def get_time(total_time, dt):
     return np.arange(0, total_time+dt, dt)
 
 
-def get_def_path(mode="ML_genoni/Exp0/"):
+def get_def_path(mode="discrimination_ML_genoni/"):
     import getpass
     try:
         user = getpass.getuser()
@@ -29,67 +29,59 @@ def get_def_path(mode="ML_genoni/Exp0/"):
     defpath+=mode
     return defpath
 
-def external_function(EXP="EXP0", mode="np"):
-    global ext_fun
-    if mode=="np":
-        if EXP.upper() =="EXP0":
 
-            @jit(nopython=True)
-            def ext_fun(params,**kwargs):
-                return params[0][0]
-        elif EXP.upper() == "EXP1":
-            def ext_fun(params,**kwargs):
-                t = kwargs.get("t",0.)
-                return params[0][0]*t
-        elif EXP.upper() == "EXP2":
-            def ext_fun(params,**kwargs):
-                t = kwargs.get("t",0.)
-                return params[0][0]*np.cos(params[0][1]*t)
+def give_def_params_discrimination(flip =0, mode="damping"):
+    # if str(mode) == "frequencies":
+        #print("FREQUENCY DISCRIMINATION!\n")
+    gamma0 = gamma1 = 1000
+    eta0 = eta1 = 1
+    kappa0 = kappa1 = 1e6
+    n0 = n1 = 1
+    omega0, omega1 = 1e4, 1.05e4
+    # elif mode=="damping":
+    #     #print("DAMPING DISCRIMINATION!")
+    #     gamma1 = 14*2*np.pi
+    #     gamma0 = 19*2*np.pi #(Hz)
+    #     eta1 = 0.9
+    #     eta0 = 0.9
+    #     n1 = 14.0
+    #     n0 = 14.0
+    #     kappa1 = 2*np.pi*360
+    #     kappa0 = 2*np.pi*360 #(Hz)
+    #     omega0 = omega1 = 0.
+    #xi1, kappa1, omega1, eta1
+    h0 = [0., gamma1, omega0, eta0,]
+    h1 = [0., gamma1, omega1, eta1]
+    if flip == 0:
+        return [h1, h0]
     else:
-        if EXP.upper() =="EXP0":
-            def ext_fun(params,**kwargs):
-                return params[0][0]
-        elif EXP.upper() == "EXP1":
-            def ext_fun(params,**kwargs):
-                t = kwargs.get("t",0.)
-                return params[0][0]*t
-        elif EXP.upper() == "EXP2":
-            def ext_fun(params,**kwargs):
-                t = kwargs.get("t",0.)
-                return params[0][0]*tf.cos(params[0][1]*t)
-    return ext_fun
+        return [h0, h1]
 
-
-
-
-
-
-def def_params():
-    kappa = 1
-    xi =0. #.1*kappa
-    omega = 0.*kappa
-    eta = 1
-    params = [xi, kappa, omega, eta]
+def check_params_discrimination(params):
+    if isinstance(params, str):
+        params = ast.literal_eval(params)
     exp_path = '{}/'.format(params)
     return params, exp_path
 
-def get_path_config(total_time=10,dt=1e-3,itraj=1,exp_path="",ext_signal=1):
-    pp = get_def_path()+ exp_path +"{}itraj/T_{}_dt_{}_ext_signal_{}/".format(itraj, total_time, dt, ext_signal)
+
+def get_path_config(total_time=10,dt=1e-3,itraj=1,method="hybrid",exp_path=""):
+    if exp_path!="":
+        pp = get_def_path()+ exp_path +"{}itraj/T_{}_dt_{}/".format(itraj, total_time, dt)
+    else:
+        pp = get_def_path()+"{}itraj/T_{}_dt_{}/".format(itraj,total_time, dt)
     return pp
 
 
-#### load_data
-
-def load(itraj = 1,total_time = 50., dt = 1e-3, exp_path="", ext_signal=1):
-    pp = get_path_config(total_time=total_time, dt=dt, itraj=itraj, exp_path = exp_path, ext_signal=ext_signal)
-    states = np.load(pp+"states.npy")
-    dys = np.load(pp+"dys.npy")
-    return states, dys
 
 
-
-
-
+def get_total_time_dt(params, ppp=10**4, dt=1e-5, total_time=4):
+    [xi1, omega1, eta, kappa1], [xi0, omega0, eta, kappa0] = params
+    if (omega1 != 0) and (omega0 !=0):
+        med = (omega1+omega0)/2
+        Period = (2*np.pi/med)
+        dt = Period/(ppp)
+        total_time = total_time*Period
+    return total_time, dt
 
 
 
@@ -110,16 +102,18 @@ def load(itraj = 1,total_time = 50., dt = 1e-3, exp_path="", ext_signal=1):
 
 
 
-#
-# def load_data_discrimination_liks(exp_path="", itraj=1, dt=1e-3,total_time=10):
-#     """
-#     hyp 1 is the true, that generated the data!
-#     """
-#     path = get_path_config(total_time = total_time, dt= dt, itraj=itraj, exp_path=exp_path)
-#
-#     logliks = np.load(path+"logliks.npy",allow_pickle=True,fix_imports=True,encoding='latin1') ### this is \textbf{q}(t)
-#     #tims = np.load(path+"times.npy",allow_pickle=True,fix_imports=True,encoding='latin1')
-#     return logliks#, tims
+
+def load_data_discrimination_liks(exp_path="", itraj=1, dt=1e-3,total_time=10):
+    """
+    hyp 1 is the true, that generated the data!
+    """
+    path = get_path_config(total_time = total_time, dt= dt, itraj=itraj, exp_path=exp_path)
+
+    # logliks = np.load(path+"logliks.npy",allow_pickle=True,fix_imports=True,encoding='latin1') ### this is \textbf{q}(t)
+    logliks = np.load(path+"states1.npy",allow_pickle=True,fix_imports=True,encoding='latin1') ### this is \textbf{q}(t)
+
+    #tims = np.load(path+"times.npy",allow_pickle=True,fix_imports=True,encoding='latin1')
+    return logliks#, tims
 #
 #
 #
