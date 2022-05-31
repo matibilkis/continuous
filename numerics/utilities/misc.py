@@ -2,7 +2,7 @@ import numpy as np
 import ast
 import os
 
-def get_def_path(mode="discrimination/"):
+def get_def_path(mode="discrimination_freq_homodyne/"):
     import getpass
     user = getpass.getuser()
     if user == "cooper-cooper":

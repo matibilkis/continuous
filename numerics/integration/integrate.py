@@ -8,13 +8,13 @@ from tqdm import tqdm
 import argparse
 import ast
 from numba import jit
-
+from scipy.linalg import solve_continuous_are
 
 @jit(nopython=True)
 def give_ders(vx, vp, cvxp, gamma_val, omega_val, kappa_val,n_val, eta_val):
-    return  [-4*cvxp**2*eta_val*kappa_val + 2*cvxp*omega_val - gamma_val*vx + gamma_val*(n_val + 0.5) + kappa_val - 4*vx**2*eta_val*kappa_val,
-     -4*cvxp**2*eta_val*kappa_val - 2*cvxp*omega_val - gamma_val*vp + gamma_val*(n_val + 0.5) + kappa_val - 4*vp**2*eta_val*kappa_val,
-     -cvxp*gamma_val - 4*cvxp*vp*eta_val*kappa_val - 4*cvxp*vx*eta_val*kappa_val + omega_val*vp - omega_val*vx]
+    return [2*cvxp*omega_val - 4.0*eta_val*kappa_val*vx**2 - gamma_val*vx + gamma_val*(n_val + 0.5) + kappa_val,
+ -4.0*cvxp**2*eta_val*kappa_val - 2*cvxp*omega_val - gamma_val*vp + gamma_val*(n_val + 0.5) + kappa_val,
+ -4.0*cvxp*eta_val*kappa_val*vx - cvxp*gamma_val + omega_val*vp - omega_val*vx]
 
 def IntegrationLoop(y0_hidden, y0_covhidden, y0_exp, times, dt):
     """
@@ -40,7 +40,7 @@ def IntegrationLoop(y0_hidden, y0_covhidden, y0_exp, times, dt):
 
         ## measurement outcome
         x1 = yhidden[ind][:2]
-        dy = np.dot(C1,x1)*dt + dW[ind,:2]
+        dy = np.dot(C1,x1)*dt + np.dot(proj_C, dW[ind,:2])
         dys.append(dy)
 
         yexper[ind+1] = EulerUpdate_x0_logliks(x1, dy, yexper[ind], dt)
@@ -101,26 +101,28 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
 
     def give_matrices(gamma, omega, n, eta, kappa):
         A = np.array([[-gamma/2, omega],[-omega, -gamma/2]])
-        C = np.sqrt(4*eta*kappa)*np.array([[1.,0.],[0.,1.]]) #homodyne
+        C = np.sqrt(4*eta*kappa)*np.array([[1.,0.],[0.,0.]]) #homodyne
         D = np.diag([gamma*(n+0.5) + kappa]*2)
         return A, C, D
 
     A1, C1, D1 = give_matrices(gamma1, omega1, n1, eta1, kappa1)
     A0, C0, D0 = give_matrices(gamma0, omega0, n0, eta0, kappa0)
 
+    proj_C = np.linalg.pinv(C1/np.sum(C1))
     lin0, lin1 = 0., 0.
     x1in ,p1in, x0in, p0in, dyxin, dypin = np.zeros(6)
 
-    ### stationary state for the covariance
-    def stat(gamma, omega, n, eta, kappa):
-        suc = n + 0.5 + kappa/gamma
-        sst = (gamma/(8*eta*kappa))*(np.sqrt(1 + 16*eta*kappa*suc/gamma ) -1 )
-        return suc, sst
+    # ### stationary state for the covariance
+    # def stat(gamma, omega, n, eta, kappa):
+    #     suc = n + 0.5 + kappa/gamma
+    #     sst = (gamma/(8*eta*kappa))*(np.sqrt(1 + 16*eta*kappa*suc/gamma ) -1 )
+    #     return suc, sst
 
-    suc1, sst1 = stat(gamma1, omega1, n1, eta1, kappa1)
-    suc0, sst0 = stat(gamma0, omega0, n0, eta0, kappa0)
-    varx10, varp10, covxy10 = sst1 ,sst1 ,0.
-    varx0, varp0, covxy0 = sst0 ,sst0 ,0.
+    sst1 = solve_continuous_are(A1.T, C1.T, D1, np.eye(2)) #### A.T because the way it's implemented!
+    sst0 = solve_continuous_are(A0.T, C0.T, D0, np.eye(2)) #### A.T because the way it's implemented!
+
+    varx10, varp10, covxy10 = sst1[0,0] ,sst1[1,1] ,sst1[1,0]
+    varx0, varp0, covxy0 = sst0[0,0] ,sst0[1,1] ,sst0[1,0]
 
     s0_hidden = np.array([x1in, p1in])
     s0cov_hidden = np.array([varx10, varp10, covxy10])
