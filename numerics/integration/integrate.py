@@ -146,13 +146,15 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
     os.makedirs(path, exist_ok=True)
 
 
-    #indis = np.logspace(1,np.log10(len(times)-1), 1000)
-    #indis = [int(k) for k in indis]
-    #timind = [times[ind] for ind in indis]
-    #logliks_short =  np.array([liks[ii] for ii in indis])
-    np.save(path+"logliks",liks)#_short)
-    np.save(path+"states1",np.array(states1 ))
-    np.save(path+"states0",np.array(states0 ))
+    indis = np.logspace(1,np.log10(len(times)-1), int(1e5))
+    indis = [int(k) for k in indis]
+    timind = [times[ind] for ind in indis]
+    logliks_short =  np.array([liks[ii] for ii in indis])
+
+
+    np.save(path+"logliks",logliks_short)#_short)
+    np.save(path+"states1",np.array(np.array([states1[ii] for ii in indis]) ))
+    np.save(path+"states0",np.array(np.array([states0[ii] for ii in indis]) ))
 
 
     #np.save(path+"times",timind)

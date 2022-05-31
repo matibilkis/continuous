@@ -22,7 +22,7 @@ def get_def_path(mode="discrimination/"):
 def give_def_params_discrimination(flip =0, mode="damping"):
     if str(mode) == "frequencies":
         #print("FREQUENCY DISCRIMINATION!\n")
-        gamma0 = gamma1 = 100
+        gamma0 = gamma1 = 1000
         eta0 = eta1 = 1
         kappa0 = kappa1 = 1e6
         n0 = n1 = 1
@@ -103,29 +103,58 @@ def load_data_discrimination_liks_v2(exp_path="", itraj=1, dt=1e-3,total_time=10
 
 
 
+def load_states(itraj, mode="frequencies", dtt=1e-6, total_time_in=50., logtimes=True):
+
+    pars = give_def_params_discrimination(flip=0, mode = mode)
+    params, exp_path = check_params_discrimination(pars)
+    [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
+
+    path = get_path_config(total_time = total_time_in, dt= dtt, itraj=itraj, exp_path=exp_path)
+
+    s1 = np.load(path+"states1.npy",allow_pickle=True,fix_imports=True,encoding='latin1') ### this is \textbf{q}(t)
+    s2 = np.load(path+"states0.npy",allow_pickle=True,fix_imports=True,encoding='latin1') ### this is \textbf{q}(t)
+
+    return s1, s2#, tims
 
 
 
 
 #### analysis stopping time ###
 
-def load_liks(itraj, mode="frequencies", dtt=1e-6, total_time_in=50.):
-    pars = give_def_params_discrimination(flip=0, mode = mode)
-    params, exp_path = check_params_discrimination(pars)
-    [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
-    logliks =load_data_discrimination_liks(itraj=itraj, total_time = total_time_in, dt=dtt, exp_path = exp_path)
-    l1  = logliks[:,0] - logliks[:,1]
+def load_liks(itraj, mode="frequencies", dtt=1e-6, total_time_in=50., logtimes=True):
+    if logtimes == True:
 
-    pars = give_def_params_discrimination(flip=1, mode = mode)
-    params, exp_path = check_params_discrimination(pars)
-    [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
-    logliks =load_data_discrimination_liks(itraj=itraj, total_time = total_time_in, dt=dtt, exp_path = exp_path)
-    l0  = logliks[:,1] - logliks[:,0]
+        pars = give_def_params_discrimination(flip=0, mode = mode)
+        params, exp_path = check_params_discrimination(pars)
+        [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
+        logliks =load_data_discrimination_liks(itraj=itraj, total_time = total_time_in, dt=dtt, exp_path = exp_path)
+        l1  = logliks[:,0] - logliks[:,1]
 
-    return l0, l1#, tims
+        pars = give_def_params_discrimination(flip=1, mode = mode)
+        params, exp_path = check_params_discrimination(pars)
+        [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
+        logliks =load_data_discrimination_liks(itraj=itraj, total_time = total_time_in, dt=dtt, exp_path = exp_path)
+        l0  = logliks[:,1] - logliks[:,0]
+
+        return l0, l1#, tims
+
+    else:
+        pars = give_def_params_discrimination(flip=0, mode = mode)
+        params, exp_path = check_params_discrimination(pars)
+        [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
+        logliks =load_data_discrimination_liks(itraj=itraj, total_time = total_time_in, dt=dtt, exp_path = exp_path)
+        l1  = logliks[:,0] - logliks[:,1]
+
+        pars = give_def_params_discrimination(flip=1, mode = mode)
+        params, exp_path = check_params_discrimination(pars)
+        [gamma1, omega1, n1, eta1, kappa1], [gamma0, omega0, n0, eta0, kappa0] = params
+        logliks =load_data_discrimination_liks(itraj=itraj, total_time = total_time_in, dt=dtt, exp_path = exp_path)
+        l0  = logliks[:,1] - logliks[:,0]
+
+        return l0, l1#, tims
 
 
-def get_stop_time(ell,b, times):
+def get_stop_time(ell,b, times, mode_log=True):
     logicals = np.logical_and(ell < b, ell > -b)
     ind_times = np.argmin(logicals)
 
@@ -136,6 +165,27 @@ def get_stop_time(ell,b, times):
 
 
 def prob(t, b, kappa0, kappa1, eta0 , eta1, n0, n1, gamma0, gamma1):
+    Su1 = n1 + 0.5 + (kappa1 / gamma1)
+    Su0 = n0 + 0.5 + (kappa0 / gamma0)
+
+    S1 = (np.sqrt(1 + (16.0*eta1*kappa1*Su1/gamma1)) - 1)*(gamma1/(8.0*eta1*kappa1))
+    S0 = (np.sqrt(1 + (16.0*eta0*kappa0*Su0/gamma0)) - 1)*( gamma0/(8.0*eta0*kappa0))
+
+    lam = gamma0 + (8*eta0*kappa0*S0)
+
+    aa = (4*eta1*kappa1*(S1**2))/gamma1
+    bb =(4*eta0*kappa0*S0**2)*(1+((16.0*eta1*kappa1*S1)/ (gamma1 + lam)) + (64.0*(eta1 * kappa1 * S1)**(2)/(gamma1 * (gamma1 + lam))))/ lam
+    c =8 *(S0*S1*(eta0*kappa0 *eta1*kappa1)**(0.5)) * (gamma1+ (4.0*eta1*kappa1*S1) ) / ((gamma1 + lam)*gamma1)
+
+    mu = 4*(eta1*kappa1*aa + (eta0*kappa0*bb) - 2*np.sqrt(eta1*kappa1*eta0*kappa0)*c)
+    S= np.sqrt(2*mu)
+
+    div = (np.sqrt(2*np.pi)*S*(t**(3/2)))
+    return  abs(b)*np.exp(-((abs(b)-mu*t)**2)/(2*t*(S**2)))/div, mu
+
+
+
+def prob_g(t, b, kappa0, kappa1, eta0 , eta1, n0, n1, gamma0, gamma1):
     Su1 = n1 + 0.5 + (kappa1 / gamma1)
     Su0 = n0 + 0.5 + (kappa0 / gamma0)
 
