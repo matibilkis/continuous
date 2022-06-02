@@ -43,5 +43,5 @@ def int_seed(seed):
         os.system("python3 numerics/integration/integrate.py --itraj {} --flip_params 1 --mode {} --dt {} --total_time {} --ppp {}".format(seed+k, mode, dt, total_time, ppp))
         print(f"{k}, {seed}, done")
 
-with mp.Pool(cores-4) as p:
-    p.map(int_seed, range(1,1000, 10))
+with mp.Pool(cores-10) as p:
+    p.map(int_seed, range(1000,5000, 10))

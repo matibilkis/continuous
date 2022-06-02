@@ -155,8 +155,8 @@ def integrate(total_time=10, dt=1e-6, itraj=1, exp_path="",**kwargs):
 
 
     np.save(path+"logliks",logliks_short)#_short)
-    np.save(path+"states1",np.array(np.array([states1[ii] for ii in indis]) ))
-    np.save(path+"states0",np.array(np.array([states0[ii] for ii in indis]) ))
+    # np.save(path+"states1",np.array(np.array([states1[ii] for ii in indis]) ))
+    # np.save(path+"states0",np.array(np.array([states0[ii] for ii in indis]) ))
 
 
     #np.save(path+"times",timind)
